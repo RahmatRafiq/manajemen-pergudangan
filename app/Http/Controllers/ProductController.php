@@ -1,5 +1,5 @@
 <?php
-namespace App\Http\Controllers\Product;
+namespace App\Http\Controllers;
 
 use App\Helpers\DataTable;
 use App\Http\Controllers\Controller;
