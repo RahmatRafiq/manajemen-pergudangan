@@ -73,7 +73,8 @@ class ProductController extends Controller
     {
         $categories = Category::all();
         return Inertia::render('Product/Form', [
-            'categories' => $categories,
+            'categories'      => $categories,
+            'categoryOptions' => $categories->map(fn($c) => ['value' => $c->id, 'label' => $c->name]),
         ]);
     }
 
@@ -91,7 +92,7 @@ class ProductController extends Controller
 
         Product::create($validatedData);
 
-        return redirect()->route('products.index')->with('success', 'Produk berhasil dibuat.');
+        return redirect()->route('product.index')->with('success', 'Produk berhasil dibuat.');
     }
 
     public function edit($id)
@@ -99,8 +100,9 @@ class ProductController extends Controller
         $product    = Product::withTrashed()->findOrFail($id);
         $categories = Category::all();
         return Inertia::render('Product/Form', [
-            'product'    => $product,
-            'categories' => $categories,
+            'product'         => $product,
+            'categories'      => $categories,
+            'categoryOptions' => $categories->map(fn($c) => ['value' => $c->id, 'label' => $c->name]),
         ]);
     }
 
@@ -117,13 +119,13 @@ class ProductController extends Controller
         $product = Product::withTrashed()->findOrFail($id);
         $product->update($validatedData);
 
-        return redirect()->route('products.index')->with('success', 'Produk berhasil diperbarui.');
+        return redirect()->route('product.index')->with('success', 'Produk berhasil diperbarui.');
     }
 
     public function destroy(Product $product)
     {
         $product->delete();
-        return redirect()->route('products.index')->with('success', 'Produk berhasil dihapus.');
+        return redirect()->route('product.index')->with('success', 'Produk berhasil dihapus.');
     }
 
     public function trashed()
@@ -137,12 +139,12 @@ class ProductController extends Controller
     public function restore($id)
     {
         Product::onlyTrashed()->where('id', $id)->restore();
-        return redirect()->route('products.index')->with('success', 'Produk berhasil dipulihkan.');
+        return redirect()->route('product.index')->with('success', 'Produk berhasil dipulihkan.');
     }
 
     public function forceDelete($id)
     {
         Product::onlyTrashed()->where('id', $id)->forceDelete();
-        return redirect()->route('products.index')->with('success', 'Produk berhasil dihapus permanen.');
+        return redirect()->route('product.index')->with('success', 'Produk berhasil dihapus permanen.');
     }
 }
