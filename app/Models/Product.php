@@ -3,14 +3,14 @@ namespace App\Models;
 
 use App\Models\Category;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Product extends Model
 {
-    use SoftDeletes;
+    use HasFactory, SoftDeletes;
 
-    // Mass assignable attributes (optional, but recommended)
     protected $fillable = [
         'sku',
         'name',
