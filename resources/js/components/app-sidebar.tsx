@@ -4,9 +4,8 @@ import { NavUser } from '@/components/nav-user';
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar';
 import { type NavItem } from '@/types';
 import { Link } from '@inertiajs/react';
-import { BookOpen, Folder, LayoutGrid } from 'lucide-react';
+import { BookOpen, Folder, LayoutGrid, Users, Shield, Activity, Key, User, Package } from 'lucide-react';
 import AppLogo from './app-logo';
-import { Users, Shield, Settings } from 'lucide-react';
 
 const mainNavItems: NavItem[] = [
     {
@@ -17,7 +16,7 @@ const mainNavItems: NavItem[] = [
     {
         title: 'Log Activity',
         href: '/activity-logs',
-        icon: LayoutGrid,
+        icon: Activity,
     },
     {
         title: 'Users Management',
@@ -32,20 +31,24 @@ const mainNavItems: NavItem[] = [
             {
                 title: 'Permissions',
                 href: '/permissions',
-                icon: Shield,
+                icon: Key,
             },
             {
                 title: 'User',
                 href: '/users',
-                icon: Settings,
+                icon: User,
             },
         ],
     },
     {
         title: 'Category Management',
         href: '/category',
-        icon: LayoutGrid,
-
+        icon: Folder,
+    },
+    {
+        title: 'Warehouse Management',
+        href: '/warehouse',
+        icon: Package,
     },
 ];
 
