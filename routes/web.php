@@ -9,11 +9,9 @@ Route::get('/', function () {
     return Inertia::render('welcome');
 })->name('home');
 
-// Route for login with OAuth (Google, GitHub)
 Route::get('auth/{provider}', [SocialAuthController::class, 'redirectToProvider'])->name('auth.redirect');
 Route::get('auth/{provider}/callback', [SocialAuthController::class, 'handleProviderCallback'])->name('auth.callback');
 
-// Middleware for pages that require authentication
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('dashboard', function () {
         return Inertia::render('dashboard');
@@ -37,6 +35,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('users/{user}/restore', [\App\Http\Controllers\UserRolePermission\UserController::class, 'restore'])->name('users.restore');
     Route::delete('users/{user}/force-delete', [\App\Http\Controllers\UserRolePermission\UserController::class, 'forceDelete'])->name('users.force-delete');
 
+    Route::post('category/json', [\App\Http\Controllers\CategoryController::class, 'json'])->name('category.json');
+    Route::resource('category', \App\Http\Controllers\CategoryController::class);
+    Route::get('category/trashed', [\App\Http\Controllers\CategoryController::class, 'trashed'])->name('category.trashed');
+    Route::post('category/{category}/restore', [\App\Http\Controllers\CategoryController::class, 'restore'])->name('category.restore');
+    Route::delete('category/{category}/force-delete', [\App\Http\Controllers\CategoryController::class, 'forceDelete'])->name('category.force-delete');
+
     Route::post('logout', [SocialAuthController::class, 'logout'])->name('logout');
 
 });
@@ -47,8 +51,3 @@ Route::get('/dashboard/activity-logs', function () {
 Route::get('/activity-logs', [ActivityLogController::class, 'index'])->name('activity-log.index');
 require __DIR__ . '/settings.php';
 require __DIR__ . '/auth.php';
-
-// "datatables.net": "^2.2.2",
-// "datatables.net-dt": "^2.2.2",
-// "datatables.net-react": "^1.0.0",
-// "jquery": "^3.7.1",
