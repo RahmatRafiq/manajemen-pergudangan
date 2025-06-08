@@ -16,7 +16,8 @@ return new class extends Migration
             $table->foreignId('region_id')
                 ->constrained('regions')
                 ->onUpdate('cascade')
-                ->onDelete('restrict');
+                ->onDelete('restrict')
+                ->nullable();
             $table->string('reference')->unique();
             $table->string('name');
             $table->string('address')->nullable();

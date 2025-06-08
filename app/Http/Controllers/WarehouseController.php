@@ -24,6 +24,7 @@ class WarehouseController extends Controller
         ]);
     }
 
+
     public function json(Request $request)
     {
         $search = $request->input('search.value', '');
@@ -84,7 +85,7 @@ class WarehouseController extends Controller
 
         Warehouse::create($validatedData);
 
-        return redirect()->route('warehouses.index')->with('success', 'Gudang berhasil dibuat.');
+        return redirect()->route('warehouse.index')->with('success', 'Gudang berhasil dibuat.');
     }
 
     public function edit($id)
@@ -108,13 +109,13 @@ class WarehouseController extends Controller
         $warehouse = Warehouse::withTrashed()->findOrFail($id);
         $warehouse->update($validatedData);
 
-        return redirect()->route('warehouses.index')->with('success', 'Gudang berhasil diperbarui.');
+        return redirect()->route('warehouse.index')->with('success', 'Gudang berhasil diperbarui.');
     }
 
     public function destroy(Warehouse $warehouse)
     {
         $warehouse->delete();
-        return redirect()->route('warehouses.index')->with('success', 'Gudang berhasil dihapus.');
+        return redirect()->route('warehouse.index')->with('success', 'Gudang berhasil dihapus.');
     }
 
     public function trashed()
@@ -128,12 +129,12 @@ class WarehouseController extends Controller
     public function restore($id)
     {
         Warehouse::onlyTrashed()->where('id', $id)->restore();
-        return redirect()->route('warehouses.index')->with('success', 'Gudang berhasil dipulihkan.');
+        return redirect()->route('warehouse.index')->with('success', 'Gudang berhasil dipulihkan.');
     }
 
     public function forceDelete($id)
     {
         Warehouse::onlyTrashed()->where('id', $id)->forceDelete();
-        return redirect()->route('warehouses.index')->with('success', 'Gudang berhasil dihapus permanen.');
+        return redirect()->route('warehouse.index')->with('success', 'Gudang berhasil dihapus permanen.');
     }
 }

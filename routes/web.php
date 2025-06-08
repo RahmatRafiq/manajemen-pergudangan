@@ -41,6 +41,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('category/{category}/restore', [\App\Http\Controllers\CategoryController::class, 'restore'])->name('category.restore');
     Route::delete('category/{category}/force-delete', [\App\Http\Controllers\CategoryController::class, 'forceDelete'])->name('category.force-delete');
 
+    Route::post('warehouse/json', [\App\Http\Controllers\WarehouseController::class, 'json'])->name('warehouse.json');
+    Route::resource('warehouse', \App\Http\Controllers\WarehouseController::class);
+    Route::get('warehouse/trashed', [\App\Http\Controllers\WarehouseController::class, 'trashed'])->name('warehouse.trashed');
+    Route::post('warehouse/{warehouse}/restore', [\App\Http\Controllers\WarehouseController::class, 'restore'])->name('warehouse.restore');
+    Route::delete('warehouse/{warehouse}/force-delete', [\App\Http\Controllers\WarehouseController::class, 'forceDelete'])->name('warehouse.force-delete');
+
     Route::post('logout', [SocialAuthController::class, 'logout'])->name('logout');
 
 });
