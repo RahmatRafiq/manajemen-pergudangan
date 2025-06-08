@@ -86,12 +86,10 @@ export default function ProductForm({ product, categoryOptions }: Props) {
                                         type="text"
                                         value={data.sku}
                                         readOnly
-                                        className="bg-gray-100"
                                     />
                                     <InputError message={errors.sku} />
                                 </div>
                             )}
-
 
                             {/* Name */}
                             <div>
