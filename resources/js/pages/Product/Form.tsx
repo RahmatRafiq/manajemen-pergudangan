@@ -9,23 +9,29 @@ import { BreadcrumbItem } from '@/types';
 import AppLayout from '@/layouts/app-layout';
 import CustomSelect from '@/components/select';
 
-type CategoryOption = { value: number; label: string };
+type Option = { value: number | string; label: string };
 
-export default function ProductForm({
-    product,
-    categoryOptions = [],
-}: {
-    product?: Product;
-    categoryOptions?: CategoryOption[];
-}) {
+type Props = {
+    product?: {
+        id: number;
+        sku: string;
+        name: string;
+        category_id: number | null;
+        unit: string;
+        description: string;
+    };
+    categoryOptions: Option[];
+};
+
+export default function ProductForm({ product, categoryOptions }: Props) {
     const isEdit = !!product;
 
     const { data, setData, post, put, processing, errors } = useForm({
         sku: product?.sku || '',
         name: product?.name || '',
         category_id: product?.category_id || '',
-        description: product?.description || '',
         unit: product?.unit || '',
+        description: product?.description || '',
     });
 
     const breadcrumbs: BreadcrumbItem[] = [
@@ -43,7 +49,9 @@ export default function ProductForm({
     };
 
     const selectedCategory =
-        categoryOptions.find((opt) => opt.value === Number(data.category_id)) || null;
+        data.category_id
+            ? categoryOptions.find((opt) => opt.value === Number(data.category_id))!
+            : null;
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -62,6 +70,7 @@ export default function ProductForm({
                             </Button>
                         </nav>
                     </aside>
+
                     <div className="flex-1 md:max-w-2xl space-y-6">
                         <HeadingSmall
                             title={isEdit ? 'Edit Product' : 'Create Product'}
@@ -69,17 +78,22 @@ export default function ProductForm({
                         />
 
                         <form onSubmit={handleSubmit} className="space-y-4">
-                            <div>
-                                <Label htmlFor="sku">SKU</Label>
-                                <Input
-                                    id="sku"
-                                    type="text"
-                                    value={data.sku}
-                                    onChange={(e) => setData('sku', e.target.value)}
-                                    required
-                                />
-                                <InputError message={errors.sku} />
-                            </div>
+                            {isEdit && (
+                                <div>
+                                    <Label htmlFor="sku">SKU</Label>
+                                    <Input
+                                        id="sku"
+                                        type="text"
+                                        value={data.sku}
+                                        readOnly
+                                        className="bg-gray-100"
+                                    />
+                                    <InputError message={errors.sku} />
+                                </div>
+                            )}
+
+
+                            {/* Name */}
                             <div>
                                 <Label htmlFor="name">Name</Label>
                                 <Input
@@ -91,6 +105,8 @@ export default function ProductForm({
                                 />
                                 <InputError message={errors.name} />
                             </div>
+
+                            {/* Category */}
                             <div>
                                 <Label htmlFor="category_id">Category</Label>
                                 <CustomSelect
@@ -98,14 +114,9 @@ export default function ProductForm({
                                     options={categoryOptions}
                                     value={selectedCategory}
                                     placeholder="Select category"
-                                    onChange={opt => {
-                                        if (
-                                            opt &&
-                                            !Array.isArray(opt) &&
-                                            typeof opt === 'object' &&
-                                            'value' in opt
-                                        ) {
-                                            setData('category_id', opt.value);
+                                    onChange={(opt) => {
+                                        if (opt && !Array.isArray(opt) && 'value' in opt) {
+                                            setData('category_id', (opt as Option).value);
                                         } else {
                                             setData('category_id', '');
                                         }
@@ -113,28 +124,47 @@ export default function ProductForm({
                                 />
                                 <InputError message={errors.category_id} />
                             </div>
+
+                            {/* Unit Select */}
                             <div>
                                 <Label htmlFor="unit">Unit</Label>
-                                <Input
+                                <CustomSelect
                                     id="unit"
-                                    type="text"
-                                    value={data.unit}
-                                    onChange={(e) => setData('unit', e.target.value)}
-                                    required
+                                    options={[
+                                        { value: 'pcs', label: 'pcs' },
+                                        { value: 'box', label: 'box' },
+                                        { value: 'kg', label: 'kg' },
+                                        { value: 'ltr', label: 'ltr' },
+                                    ]}
+                                    value={
+                                        data.unit ? { value: data.unit, label: data.unit } : null
+                                    }
+                                    placeholder="Select unit"
+                                    onChange={(opt) => {
+                                        if (opt && !Array.isArray(opt) && 'value' in opt) {
+                                            setData('unit', String((opt as Option).value));
+                                        } else {
+                                            setData('unit', '');
+                                        }
+                                    }}
                                 />
                                 <InputError message={errors.unit} />
                             </div>
+
+                            {/* Description */}
                             <div>
                                 <Label htmlFor="description">Description</Label>
                                 <Input
                                     id="description"
                                     type="text"
-                                    value={data.description || ''}
+                                    value={data.description}
                                     onChange={(e) => setData('description', e.target.value)}
                                     placeholder="Enter description"
                                 />
                                 <InputError message={errors.description} />
                             </div>
+
+                            {/* Actions */}
                             <div className="flex items-center space-x-4">
                                 <Button disabled={processing}>
                                     {isEdit ? 'Update Product' : 'Create Product'}
