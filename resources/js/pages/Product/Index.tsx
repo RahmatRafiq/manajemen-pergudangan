@@ -65,7 +65,7 @@ export default function ProductIndex({ filter: initialFilter, success }: { filte
                 const root = ReactDOM.createRoot(cell);
                 root.render(
                     <Link
-                        href={`/products/${id}/edit`}
+                        href={`/product/${id}/edit`}
                         className="inline-block ml-2 px-2 py-1 bg-yellow-500 text-white rounded hover:bg-yellow-600 text-center"
                     >
                         Edit

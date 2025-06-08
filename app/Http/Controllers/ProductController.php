@@ -81,7 +81,6 @@ class ProductController extends Controller
     public function store(Request $request)
     {
         $validatedData = $request->validate([
-            'sku'         => 'required|string|max:100|unique:products',
             'name'        => 'required|string|max:255',
             'category_id' => 'required|exists:categories,id',
             'description' => 'nullable|string',
@@ -109,7 +108,6 @@ class ProductController extends Controller
     public function update(Request $request, $id)
     {
         $validatedData = $request->validate([
-            'sku'         => 'required|string|max:100|unique:products,sku,' . $id,
             'name'        => 'required|string|max:255',
             'category_id' => 'required|exists:categories,id',
             'description' => 'nullable|string',

@@ -50,6 +50,11 @@ const mainNavItems: NavItem[] = [
         href: '/warehouse',
         icon: Package,
     },
+    {
+        title: 'Products Management',
+        href: '/product',
+        icon: BookOpen,
+    },
 ];
 
 const footerNavItems: NavItem[] = [
