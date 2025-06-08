@@ -16,6 +16,7 @@ export default function CategoryForm({ category }: { category?: Category }) {
     const { data, setData, post, put, processing, errors } = useForm({
         name: category?.name || '',
         type: category?.type || 'article',
+        description: category?.description || '',
     });
 
     const breadcrumbs: BreadcrumbItem[] = [
@@ -74,12 +75,35 @@ export default function CategoryForm({ category }: { category?: Category }) {
                                 <InputError message={errors.name} />
                             </div>
                             <div>
+                                <Label htmlFor="description">Description</Label>
+                                <Input
+                                    id="description"
+                                    type="text"
+                                    value={data.description || ''}
+                                    onChange={(e) => setData('description', e.target.value)}
+                                    placeholder="Enter description"
+                                />
+                                <InputError message={errors.description} />
+                            </div>
+                            <div>
                                 <Label htmlFor="type">Type</Label>
                                 <CustomSelect
                                     id="type"
                                     options={typeOptions}
                                     value={selectedType}
                                     placeholder="Select type"
+                                    onChange={opt => {
+                                        if (
+                                            opt &&
+                                            !Array.isArray(opt) &&
+                                            typeof opt === 'object' &&
+                                            'value' in opt
+                                        ) {
+                                            setData('type', opt.value);
+                                        } else {
+                                            setData('type', '');
+                                        }
+                                    }}
                                 />
                                 <InputError message={errors.type} />
                             </div>
