@@ -32,8 +32,9 @@ export default function CategoryForm({ category }: { category?: Category }) {
         }
     };
     const typeOptions = [
-        { value: 'article', label: 'Article' },
-        { value: 'virtual tour', label: 'Virtual Tour' },
+        { value: 'finished_goods', label: 'Finished Goods / Barang Jadi' },
+        { value: 'raw_material', label: 'Raw Material / Bahan Baku' },
+        { value: 'consumable', label: 'Consumable / Barang Habis Pakai' },
     ];
     const selectedType = typeOptions.find(opt => opt.value === data.type) || null;
 
