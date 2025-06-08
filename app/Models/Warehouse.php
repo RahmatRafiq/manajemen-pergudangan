@@ -22,6 +22,11 @@ class Warehouse extends Model
         'deleted_at' => 'datetime',
     ];
 
+    public function users()
+    {
+        return $this->belongsToMany(User::class, 'user_warehouses');
+    }
+
     protected static function boot()
     {
         parent::boot();

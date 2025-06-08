@@ -1,5 +1,5 @@
 import { Head, useForm, Link } from '@inertiajs/react';
-import { FormEvent } from 'react';
+import { FormEvent, useEffect } from 'react';
 import HeadingSmall from '@/components/heading-small';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
@@ -19,11 +19,13 @@ type Props = {
         category_id: number | null;
         unit: string;
         description: string;
+        warehouse_id?: number | null;
     };
     categoryOptions: Option[];
+    warehouseOptions: Option[];
 };
 
-export default function ProductForm({ product, categoryOptions }: Props) {
+export default function ProductForm({ product, categoryOptions, warehouseOptions = [] }: Props) {
     const isEdit = !!product;
 
     const { data, setData, post, put, processing, errors } = useForm({
@@ -32,7 +34,14 @@ export default function ProductForm({ product, categoryOptions }: Props) {
         category_id: product?.category_id || '',
         unit: product?.unit || '',
         description: product?.description || '',
+        warehouse_id: product?.warehouse_id || '',
     });
+
+    useEffect(() => {
+        if (!isEdit && warehouseOptions.length === 1) {
+            setData('warehouse_id', warehouseOptions[0].value);
+        }
+    }, [warehouseOptions, isEdit, setData]);
 
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Product Management', href: '/products' },
@@ -53,13 +62,17 @@ export default function ProductForm({ product, categoryOptions }: Props) {
             ? categoryOptions.find((opt) => opt.value === Number(data.category_id))!
             : null;
 
+    const selectedWarehouse =
+        data.warehouse_id
+            ? warehouseOptions.find((opt) => opt.value === Number(data.warehouse_id)) || null
+            : null;
+
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title={isEdit ? 'Edit Product' : 'Create Product'} />
             <div className="px-4 py-6">
                 <h1 className="text-2xl font-semibold mb-4">Product Management</h1>
                 <div className="flex flex-col space-y-8 lg:flex-row lg:space-y-0 lg:space-x-12">
-                    {/* Sidebar */}
                     <aside className="w-full max-w-xl lg:w-48">
                         <nav className="flex flex-col space-y-1">
                             <Button asChild variant="ghost" size="sm" className="justify-start">
@@ -91,7 +104,6 @@ export default function ProductForm({ product, categoryOptions }: Props) {
                                 </div>
                             )}
 
-                            {/* Name */}
                             <div>
                                 <Label htmlFor="name">Name</Label>
                                 <Input
@@ -104,7 +116,6 @@ export default function ProductForm({ product, categoryOptions }: Props) {
                                 <InputError message={errors.name} />
                             </div>
 
-                            {/* Category */}
                             <div>
                                 <Label htmlFor="category_id">Category</Label>
                                 <CustomSelect
@@ -123,7 +134,6 @@ export default function ProductForm({ product, categoryOptions }: Props) {
                                 <InputError message={errors.category_id} />
                             </div>
 
-                            {/* Unit Select */}
                             <div>
                                 <Label htmlFor="unit">Unit</Label>
                                 <CustomSelect
@@ -149,7 +159,6 @@ export default function ProductForm({ product, categoryOptions }: Props) {
                                 <InputError message={errors.unit} />
                             </div>
 
-                            {/* Description */}
                             <div>
                                 <Label htmlFor="description">Description</Label>
                                 <Input
@@ -162,7 +171,31 @@ export default function ProductForm({ product, categoryOptions }: Props) {
                                 <InputError message={errors.description} />
                             </div>
 
-                            {/* Actions */}
+                            {warehouseOptions.length > 1 && (
+                                <div>
+                                    <Label htmlFor="warehouse_id">Warehouse</Label>
+                                    <CustomSelect
+                                        id="warehouse_id"
+                                        options={warehouseOptions}
+                                        value={selectedWarehouse}
+                                        placeholder="Select warehouse"
+                                        onChange={(opt) => {
+                                            if (opt && !Array.isArray(opt) && 'value' in opt) {
+                                                setData('warehouse_id', (opt as Option).value);
+                                            } else {
+                                                setData('warehouse_id', '');
+                                            }
+                                        }}
+                                    />
+                                    <InputError message={errors.warehouse_id} />
+                                </div>
+                            )}
+                            {warehouseOptions.length === 1 && (
+                                <div className="text-sm text-gray-500">
+                                    Produk akan otomatis dicatat di warehouse: <b>{warehouseOptions[0].label}</b>
+                                </div>
+                            )}
+
                             <div className="flex items-center space-x-4">
                                 <Button disabled={processing}>
                                     {isEdit ? 'Update Product' : 'Create Product'}
