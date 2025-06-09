@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
-import ReactDOM from 'react-dom/client';
 import { Head, Link, router } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
+import HeadingSmall from '@/components/heading-small';
 import { Button } from '@/components/ui/button';
 import DataTableWrapper, { DataTableWrapperRef } from '@/components/datatables';
 import { StockTransaction } from '@/types/StockTransaction';
@@ -59,42 +59,6 @@ export default function StockTransactionIndex({ filter: initialFilter, success }
         });
     };
 
-    const drawCallback = () => {
-        document.querySelectorAll('.inertia-link-cell').forEach((cell) => {
-            const id = cell.getAttribute('data-id');
-            if (id) {
-                const root = ReactDOM.createRoot(cell);
-                root.render(
-                    <Link
-                        href={`/stock-transaction/${id}/edit`}
-                        className="inline-block ml-2 px-2 py-1 bg-yellow-500 text-white rounded hover:bg-yellow-600 text-center"
-                    >
-                        Edit
-                    </Link>
-                );
-            }
-        });
-
-        document.querySelectorAll('.btn-delete').forEach((btn) => {
-            btn.addEventListener('click', () => {
-                const id = btn.getAttribute('data-id');
-                if (id) handleDelete(Number(id));
-            });
-        });
-        document.querySelectorAll('.btn-restore').forEach((btn) => {
-            btn.addEventListener('click', () => {
-                const id = btn.getAttribute('data-id');
-                if (id) handleRestore(Number(id));
-            });
-        });
-        document.querySelectorAll('.btn-force-delete').forEach((btn) => {
-            btn.addEventListener('click', () => {
-                const id = btn.getAttribute('data-id');
-                if (id) handleForceDelete(Number(id));
-            });
-        });
-    };
-
     const renderToggleTabs = () => {
         const tabs = ['all', 'trashed'];
         return (
@@ -122,25 +86,50 @@ export default function StockTransactionIndex({ filter: initialFilter, success }
             <Head title="Stock Transactions" />
             <div className="px-4 py-6">
                 <h1 className="text-2xl font-semibold mb-4">Stock Transactions</h1>
-                <div className="flex items-center justify-between mb-4">
-                    <div>{renderToggleTabs()}</div>
-                    <Link href={route('stock-transaction.create')}>
-                        <Button>Create Transaction</Button>
-                    </Link>
+                <div className="col-md-12">
+                    <HeadingSmall title="Stock Transaction" description="Manage your stock transactions here." />
+                    <div className="flex items-center justify-between mb-4">
+                        <h2 className="text-xl font-semibold">Stock Transaction List</h2>
+                        <Link href={route('stock-transaction.create')}>
+                            <Button>Create Transaction</Button>
+                        </Link>
+                    </div>
+                    <div className="mb-4">{renderToggleTabs()}</div>
+                    {success && (
+                        <div className="p-2 mb-2 bg-green-100 text-green-800 rounded">{success}</div>
+                    )}
+                    <DataTableWrapper
+                        key={filter}
+                        ref={dtRef}
+                        ajax={{
+                            url: route('stock-transaction.json') + '?filter=' + filter,
+                            type: 'POST',
+                        }}
+                        columns={columns(filter)}
+                        options={{
+                            drawCallback: () => {
+                                document.querySelectorAll('.btn-delete').forEach((btn) => {
+                                    btn.addEventListener('click', () => {
+                                        const id = btn.getAttribute('data-id');
+                                        if (id) handleDelete(Number(id));
+                                    });
+                                });
+                                document.querySelectorAll('.btn-restore').forEach((btn) => {
+                                    btn.addEventListener('click', () => {
+                                        const id = btn.getAttribute('data-id');
+                                        if (id) handleRestore(Number(id));
+                                    });
+                                });
+                                document.querySelectorAll('.btn-force-delete').forEach((btn) => {
+                                    btn.addEventListener('click', () => {
+                                        const id = btn.getAttribute('data-id');
+                                        if (id) handleForceDelete(Number(id));
+                                    });
+                                });
+                            }
+                        }}
+                    />
                 </div>
-                {success && (
-                    <div className="p-2 mb-2 bg-green-100 text-green-800 rounded">{success}</div>
-                )}
-                <DataTableWrapper
-                    key={filter}
-                    ref={dtRef}
-                    ajax={{
-                        url: route('stock-transaction.json') + '?filter=' + filter,
-                        type: 'POST',
-                    }}
-                    columns={columns(filter)}
-                    options={{ drawCallback }}
-                />
             </div>
         </AppLayout>
     );
