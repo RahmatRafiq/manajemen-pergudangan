@@ -23,5 +23,17 @@ class Inventory extends Model
         'reserved'  => 'integer',
         'min_stock' => 'integer',
         'max_stock' => 'integer',
+        'updated_at' => 'datetime',
+        'deleted_at' => 'datetime',
+        'created_at' => 'datetime',
     ];
+    public function product()
+    {
+        return $this->belongsTo(Product::class);
+    }
+
+    public function warehouse()
+    {
+        return $this->belongsTo(Warehouse::class);
+    }
 }
