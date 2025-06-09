@@ -48,11 +48,21 @@ const mainNavItems: NavItem[] = [
     {
         title: 'Warehouse Management',
         href: '/warehouse',
-        icon: Package,
+        icon: LayoutGrid,
     },
     {
         title: 'Products Management',
         href: '/product',
+        icon: Package,
+    },
+    {
+        title: 'Inventory Management',
+        href: '/inventory',
+        icon: Folder,
+    },
+    {
+        title: 'Stock Transactions',
+        href: '/stock-transaction',
         icon: BookOpen,
     },
 ];
