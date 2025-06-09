@@ -53,6 +53,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('product/{product}/restore', [\App\Http\Controllers\ProductController::class, 'restore'])->name('product.restore');
     Route::delete('product/{product}/force-delete', [\App\Http\Controllers\ProductController::class, 'forceDelete'])->name('product.force-delete');
 
+    Route::post('inventory/json', [\App\Http\Controllers\InventoryController::class, 'json'])->name('inventory.json');
+    Route::resource('inventory', \App\Http\Controllers\InventoryController::class);
+    Route::get('inventory/trashed', [\App\Http\Controllers\InventoryController::class, 'trashed'])->name('inventory.trashed');
+    Route::post('inventory/{inventory}/restore', [\App\Http\Controllers\InventoryController::class, 'restore'])->name('inventory.restore');
+    Route::delete('inventory/{inventory}/force-delete', [\App\Http\Controllers\InventoryController::class, 'forceDelete'])->name('inventory.force-delete');
+
     Route::post('logout', [SocialAuthController::class, 'logout'])->name('logout');
 
 });
