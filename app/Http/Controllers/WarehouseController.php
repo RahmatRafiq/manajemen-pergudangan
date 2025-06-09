@@ -3,6 +3,7 @@ namespace App\Http\Controllers;
 
 use App\Helpers\DataTable;
 use App\Http\Controllers\Controller;
+use App\Models\Region;
 use App\Models\Warehouse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -23,7 +24,6 @@ class WarehouseController extends Controller
             'filter'     => $filter,
         ]);
     }
-
 
     public function json(Request $request)
     {
@@ -70,7 +70,15 @@ class WarehouseController extends Controller
 
     public function create()
     {
-        return Inertia::render('Warehouse/Form');
+        $regionOptions = Region::all()->map(function ($region) {
+            return [
+                'value' => $region->id,
+                'label' => $region->name,
+            ];
+        });
+        return Inertia::render('Warehouse/Form', [
+            'regionOptions' => $regionOptions,
+        ]);
     }
 
     public function store(Request $request)
@@ -90,9 +98,16 @@ class WarehouseController extends Controller
 
     public function edit($id)
     {
-        $warehouse = Warehouse::withTrashed()->findOrFail($id);
+        $warehouse     = Warehouse::withTrashed()->findOrFail($id);
+        $regionOptions = Region::all()->map(function ($region) {
+            return [
+                'value' => $region->id,
+                'label' => $region->name,
+            ];
+        });
         return Inertia::render('Warehouse/Form', [
-            'warehouse' => $warehouse,
+            'warehouse'     => $warehouse,
+            'regionOptions' => $regionOptions,
         ]);
     }
 
