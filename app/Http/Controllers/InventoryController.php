@@ -12,11 +12,13 @@ class InventoryController extends Controller
 {
     public function index(Request $request)
     {
-        $filter      = $request->query('filter', 'active');
+        $filter           = $request->query('filter', 'active');
+        $userWarehouseIds = auth()->user()->warehouses->pluck('id');
+
         $inventories = match ($filter) {
-            'trashed' => Inventory::onlyTrashed()->with(['product', 'warehouse'])->get(),
-            'all' => Inventory::withTrashed()->with(['product', 'warehouse'])->get(),
-            default => Inventory::with(['product', 'warehouse'])->get(),
+            'trashed' => Inventory::onlyTrashed()->whereIn('warehouse_id', $userWarehouseIds)->with(['product', 'warehouse'])->get(),
+            'all' => Inventory::withTrashed()->whereIn('warehouse_id', $userWarehouseIds)->with(['product', 'warehouse'])->get(),
+            default => Inventory::whereIn('warehouse_id', $userWarehouseIds)->with(['product', 'warehouse'])->get(),
         };
 
         return Inertia::render('Inventory/Index', [
@@ -29,13 +31,14 @@ class InventoryController extends Controller
 
     public function json(Request $request)
     {
-        $search = $request->input('search.value', '');
-        $filter = $request->input('filter', 'active');
+        $userWarehouseIds = auth()->user()->warehouses->pluck('id');
+        $search           = $request->input('search.value', '');
+        $filter           = $request->input('filter', 'active');
 
         $query = match ($filter) {
-            'trashed' => Inventory::onlyTrashed()->with(['product', 'warehouse']),
-            'all' => Inventory::withTrashed()->with(['product', 'warehouse']),
-            default => Inventory::with(['product', 'warehouse']),
+            'trashed' => Inventory::onlyTrashed()->whereIn('warehouse_id', $userWarehouseIds)->with(['product', 'warehouse']),
+            'all' => Inventory::withTrashed()->whereIn('warehouse_id', $userWarehouseIds)->with(['product', 'warehouse']),
+            default => Inventory::whereIn('warehouse_id', $userWarehouseIds)->with(['product', 'warehouse']),
         };
 
         if ($search) {
