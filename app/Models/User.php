@@ -60,10 +60,6 @@ class User extends Authenticatable implements HasMedia
      *
      * @return \Illuminate\Database\Eloquent\Relations\BelongsToMany
      */
-    public function warehouses(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
-    {
-        return $this->belongsToMany(Warehouse::class, 'user_warehouses');
-    }
 
     public function getActivitylogOptions(): LogOptions
     {
