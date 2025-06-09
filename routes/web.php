@@ -59,6 +59,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('inventory/{inventory}/restore', [\App\Http\Controllers\InventoryController::class, 'restore'])->name('inventory.restore');
     Route::delete('inventory/{inventory}/force-delete', [\App\Http\Controllers\InventoryController::class, 'forceDelete'])->name('inventory.force-delete');
 
+    Route::post('stock-transaction/json', [\App\Http\Controllers\StockTransactionController::class, 'json'])->name('stock-transaction.json');
+    Route::resource('stock-transaction', \App\Http\Controllers\StockTransactionController::class);
+    Route::get('stock-transaction/trashed', [\App\Http\Controllers\StockTransactionController::class, 'trashed'])->name('stock-transaction.trashed');
+    Route::post('stock-transaction/{transaction}/restore', [\App\Http\Controllers\StockTransactionController::class, 'restore'])->name('stock-transaction.restore');
+    Route::delete('stock-transaction/{transaction}/force-delete', [\App\Http\Controllers\StockTransactionController::class, 'forceDelete'])->name('stock-transaction.force-delete');
+
     Route::post('logout', [SocialAuthController::class, 'logout'])->name('logout');
 
 });
