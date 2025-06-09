@@ -30,7 +30,6 @@ const columns = (filter: string) => [
                 html += `<button class="btn-restore ml-2 px-2 py-1 bg-green-600 text-white rounded hover:bg-green-700" data-id="${trx.id}">Restore</button>`;
                 html += `<button class="btn-force-delete ml-2 px-2 py-1 bg-red-600 text-white rounded hover:bg-red-700" data-id="${trx.id}">Force Delete</button>`;
             } else {
-                html += `<span class="inertia-link-cell" data-id="${trx.id}"></span>`;
                 html += `<button class="btn-delete ml-2 px-2 py-1 bg-red-600 text-white rounded hover:bg-red-700" data-id="${trx.id}">Delete</button>`;
             }
             return html;

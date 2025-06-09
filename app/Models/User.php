@@ -67,4 +67,13 @@ class User extends Authenticatable implements HasMedia
             });
     }
 
+    public function warehouses()
+    {
+        return $this->belongsToMany(
+            Warehouse::class,
+            'user_warehouses',
+            'user_id',
+            'warehouse_id'
+        );
+    }
 }

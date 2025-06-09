@@ -1,52 +1,68 @@
 <?php
-
 namespace App\Http\Controllers;
 
 use App\Helpers\DataTable;
-use App\Models\StockTransaction;
 use App\Models\Inventory;
 use App\Models\Product;
+use App\Models\StockTransaction;
 use App\Models\Warehouse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
 class StockTransactionController extends Controller
 {
+    protected function getUserWarehouseIds()
+    {
+        return auth()->user()->warehouses()->pluck('warehouses.id');
+    }
+
     public function index(Request $request)
     {
-        $filter = $request->query('filter', 'all');
-        $transactions = match ($filter) {
-            'trashed' => StockTransaction::onlyTrashed()->with(['inventory.product', 'inventory.warehouse', 'creator', 'approver'])->get(),
-            'all'     => StockTransaction::withTrashed()->with(['inventory.product', 'inventory.warehouse', 'creator', 'approver'])->get(),
-            default   => StockTransaction::with(['inventory.product', 'inventory.warehouse', 'creator', 'approver'])->get(),
+        $userWarehouseIds = $this->getUserWarehouseIds();
+        $filter           = $request->query('filter', 'all');
+        $transactions     = match ($filter) {
+            'trashed' => StockTransaction::onlyTrashed()
+                ->whereHas('inventory', fn($q) => $q->whereIn('warehouse_id', $userWarehouseIds))
+                ->with(['inventory.product', 'inventory.warehouse', 'creator', 'approver'])->get(),
+            'all' => StockTransaction::withTrashed()
+                ->whereHas('inventory', fn($q) => $q->whereIn('warehouse_id', $userWarehouseIds))
+                ->with(['inventory.product', 'inventory.warehouse', 'creator', 'approver'])->get(),
+            default => StockTransaction::whereHas('inventory', fn($q) => $q->whereIn('warehouse_id', $userWarehouseIds))
+                ->with(['inventory.product', 'inventory.warehouse', 'creator', 'approver'])->get(),
         };
 
         return Inertia::render('StockTransaction/Index', [
             'transactions' => $transactions,
             'filter'       => $filter,
             'products'     => Product::all(),
-            'warehouses'   => Warehouse::all(),
+            'warehouses'   => Warehouse::whereIn('id', $userWarehouseIds)->get(),
         ]);
     }
 
     public function json(Request $request)
     {
-        $search = $request->input('search.value', '');
-        $filter = $request->input('filter', 'all');
+        $userWarehouseIds = $this->getUserWarehouseIds();
+        $search           = $request->input('search.value', '');
+        $filter           = $request->input('filter', 'all');
 
         $query = match ($filter) {
-            'trashed' => StockTransaction::onlyTrashed()->with(['inventory.product', 'inventory.warehouse', 'creator', 'approver']),
-            'all'     => StockTransaction::withTrashed()->with(['inventory.product', 'inventory.warehouse', 'creator', 'approver']),
-            default   => StockTransaction::with(['inventory.product', 'inventory.warehouse', 'creator', 'approver']),
+            'trashed' => StockTransaction::onlyTrashed()
+                ->whereHas('inventory', fn($q) => $q->whereIn('warehouse_id', $userWarehouseIds))
+                ->with(['inventory.product', 'inventory.warehouse', 'creator', 'approver']),
+            'all' => StockTransaction::withTrashed()
+                ->whereHas('inventory', fn($q) => $q->whereIn('warehouse_id', $userWarehouseIds))
+                ->with(['inventory.product', 'inventory.warehouse', 'creator', 'approver']),
+            default => StockTransaction::whereHas('inventory', fn($q) => $q->whereIn('warehouse_id', $userWarehouseIds))
+                ->with(['inventory.product', 'inventory.warehouse', 'creator', 'approver']),
         };
 
         if ($search) {
             $query->whereHas('inventory.product', function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
-                  ->orWhere('sku', 'like', "%{$search}%");
+                    ->orWhere('sku', 'like', "%{$search}%");
             })->orWhereHas('inventory.warehouse', function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
-                  ->orWhere('reference', 'like', "%{$search}%");
+                    ->orWhere('reference', 'like', "%{$search}%");
             })->orWhere('reference', 'like', "%{$search}%");
         }
 
@@ -60,20 +76,20 @@ class StockTransactionController extends Controller
 
         $data['data'] = collect($data['data'])->map(function ($trx) {
             return [
-                'id'           => $trx->id,
-                'type'         => $trx->type,
-                'warehouse'    => $trx->inventory?->warehouse?->name,
-                'product'      => $trx->inventory?->product?->name,
-                'sku'          => $trx->inventory?->product?->sku,
-                'quantity'     => $trx->quantity,
-                'reference'    => $trx->reference,
-                'description'  => $trx->description,
-                'created_by'   => $trx->creator?->name,
-                'approved_by'  => $trx->approver?->name,
-                'created_at'   => $trx->created_at,
-                'approved_at'  => $trx->approved_at,
-                'trashed'      => $trx->trashed(),
-                'actions'      => '',
+                'id'          => $trx->id,
+                'type'        => $trx->type,
+                'warehouse'   => $trx->inventory?->warehouse?->name,
+                'product'     => $trx->inventory?->product?->name,
+                'sku'         => $trx->inventory?->product?->sku,
+                'quantity'    => $trx->quantity,
+                'reference'   => $trx->reference,
+                'description' => $trx->description,
+                'created_by'  => $trx->creator?->name,
+                'approved_by' => $trx->approver?->name,
+                'created_at'  => $trx->created_at,
+                'approved_at' => $trx->approved_at,
+                'trashed'     => $trx->trashed(),
+                'actions'     => '',
             ];
         });
 
@@ -82,15 +98,29 @@ class StockTransactionController extends Controller
 
     public function create()
     {
+        $userWarehouseIds = $this->getUserWarehouseIds();
+        $inventories      = Inventory::with(['product', 'warehouse'])
+            ->whereIn('warehouse_id', $userWarehouseIds)
+            ->get();
+
         return Inertia::render('StockTransaction/Form', [
-            'inventories' => Inventory::with(['product', 'warehouse'])->get(),
+            'inventories' => $inventories,
         ]);
     }
 
     public function store(Request $request)
     {
-        $validated = $request->validate([
-            'inventory_id' => 'required|exists:inventories,id',
+        $userWarehouseIds = $this->getUserWarehouseIds();
+        $validated        = $request->validate([
+            'inventory_id' => [
+                'required',
+                function ($attribute, $value, $fail) use ($userWarehouseIds) {
+                    $inventory = Inventory::find($value);
+                    if (! $inventory || ! $userWarehouseIds->contains($inventory->warehouse_id)) {
+                        $fail('Anda tidak berhak melakukan transaksi pada inventory ini.');
+                    }
+                },
+            ],
             'type'         => 'required|in:in,out,adjustment,transfer',
             'quantity'     => 'required|integer|min:1',
             'reference'    => 'nullable|string|max:255',
@@ -100,31 +130,43 @@ class StockTransactionController extends Controller
 
         $trx = StockTransaction::create($validated);
 
-        // Update inventory quantity
         $inventory = $trx->inventory;
         if ($trx->type === 'in') {
             $inventory->increment('quantity', $trx->quantity);
         } elseif ($trx->type === 'out') {
             $inventory->decrement('quantity', $trx->quantity);
         }
-        // adjustment/transfer: silakan tambah logic sesuai kebutuhan
 
         return redirect()->route('stock-transaction.index')->with('success', 'Transaksi stok berhasil dicatat.');
     }
 
     public function edit($id)
     {
-        $trx = StockTransaction::withTrashed()->findOrFail($id);
+        $userWarehouseIds = $this->getUserWarehouseIds();
+        $trx              = StockTransaction::withTrashed()->findOrFail($id);
+        $inventories      = Inventory::with(['product', 'warehouse'])
+            ->whereIn('warehouse_id', $userWarehouseIds)
+            ->get();
+
         return Inertia::render('StockTransaction/Form', [
             'transaction' => $trx,
-            'inventories' => Inventory::with(['product', 'warehouse'])->get(),
+            'inventories' => $inventories,
         ]);
     }
 
     public function update(Request $request, $id)
     {
-        $validated = $request->validate([
-            'inventory_id' => 'required|exists:inventories,id',
+        $userWarehouseIds = $this->getUserWarehouseIds();
+        $validated        = $request->validate([
+            'inventory_id' => [
+                'required',
+                function ($attribute, $value, $fail) use ($userWarehouseIds) {
+                    $inventory = Inventory::find($value);
+                    if (! $inventory || ! $userWarehouseIds->contains($inventory->warehouse_id)) {
+                        $fail('Anda tidak berhak melakukan transaksi pada inventory ini.');
+                    }
+                },
+            ],
             'type'         => 'required|in:in,out,adjustment,transfer',
             'quantity'     => 'required|integer|min:1',
             'reference'    => 'nullable|string|max:255',
@@ -133,7 +175,6 @@ class StockTransactionController extends Controller
 
         $trx = StockTransaction::withTrashed()->findOrFail($id);
 
-        // Catatan: Untuk update transaksi, Anda perlu logic khusus untuk mengembalikan stok lama sebelum update, jika diizinkan.
         $trx->update($validated);
 
         return redirect()->route('stock-transaction.index')->with('success', 'Transaksi stok berhasil diperbarui.');
@@ -147,7 +188,10 @@ class StockTransactionController extends Controller
 
     public function trashed()
     {
-        $transactions = StockTransaction::onlyTrashed()->with(['inventory.product', 'inventory.warehouse', 'creator', 'approver'])->get();
+        $userWarehouseIds = $this->getUserWarehouseIds();
+        $transactions     = StockTransaction::onlyTrashed()
+            ->whereHas('inventory', fn($q) => $q->whereIn('warehouse_id', $userWarehouseIds))
+            ->with(['inventory.product', 'inventory.warehouse', 'creator', 'approver'])->get();
         return Inertia::render('StockTransaction/Trashed', [
             'transactions' => $transactions,
         ]);
