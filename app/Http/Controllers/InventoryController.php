@@ -84,7 +84,6 @@ class InventoryController extends Controller
 
         if ($user->hasRole('admin')) {
             $warehouses = Warehouse::all();
-            // Ambil semua product yang belum ada di inventory manapun
             $usedProductIds = Inventory::pluck('product_id')->unique();
             $products = Product::whereNotIn('id', $usedProductIds)->get();
         } else {
