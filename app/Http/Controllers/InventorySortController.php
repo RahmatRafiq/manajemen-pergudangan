@@ -10,16 +10,16 @@ class InventorySortController extends Controller
     public function byWarehouse($warehouseId)
     {
         $inventories = Inventory::getSortedByWarehouse($warehouseId);
-        return response()->json([
+        return inertia('Inventory/SortedByWarehouse', [
             'warehouse_id' => $warehouseId,
-            'inventories'  => $inventories,
+            'inventories' => $inventories,
         ]);
     }
 
     public function global()
     {
         $inventories = Inventory::getSortedGlobal();
-        return response()->json([
+        return inertia('Inventory/SortedGlobal', [
             'inventories' => $inventories,
         ]);
     }
