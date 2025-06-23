@@ -19,10 +19,10 @@ class Inventory extends Model
         'updated_by',
     ];
     protected $casts = [
-        'quantity'  => 'integer',
-        'reserved'  => 'integer',
-        'min_stock' => 'integer',
-        'max_stock' => 'integer',
+        'quantity'   => 'integer',
+        'reserved'   => 'integer',
+        'min_stock'  => 'integer',
+        'max_stock'  => 'integer',
         'updated_at' => 'datetime',
         'deleted_at' => 'datetime',
         'created_at' => 'datetime',
@@ -35,5 +35,21 @@ class Inventory extends Model
     public function warehouse()
     {
         return $this->belongsTo(Warehouse::class);
+    }
+    public static function getSortedByWarehouse($warehouseId)
+    {
+        return static::where('warehouse_id', $warehouseId)
+            ->orderBy('quantity', 'desc')
+            ->with('product')
+            ->get();
+    }
+    public static function getSortedGlobal()
+    {
+        return static::select('product_id')
+            ->selectRaw('SUM(quantity) as total_quantity')
+            ->groupBy('product_id')
+            ->orderByDesc('total_quantity')
+            ->with('product')
+            ->get();
     }
 }
