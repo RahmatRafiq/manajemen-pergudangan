@@ -12,7 +12,7 @@ class InventoryController extends Controller
 {
     public function index(Request $request)
     {
-        $filter           = $request->query('filter', 'active');
+        $filter = $request->query('filter', 'active');
         $userWarehouseIds = auth()->user()->warehouses->pluck('id');
 
         $inventories = match ($filter) {
@@ -23,17 +23,17 @@ class InventoryController extends Controller
 
         return Inertia::render('Inventory/Index', [
             'inventories' => $inventories,
-            'filter'      => $filter,
-            'products'    => Product::all(),
-            'warehouses'  => Warehouse::all(),
+            'filter' => $filter,
+            'products' => Product::all(),
+            'warehouses' => Warehouse::all(),
         ]);
     }
 
     public function json(Request $request)
     {
         $userWarehouseIds = auth()->user()->warehouses->pluck('id');
-        $search           = $request->input('search.value', '');
-        $filter           = $request->input('filter', 'active');
+        $search = $request->input('search.value', '');
+        $filter = $request->input('filter', 'active');
 
         $query = match ($filter) {
             'trashed' => Inventory::onlyTrashed()->whereIn('warehouse_id', $userWarehouseIds)->with(['product', 'warehouse']),
@@ -61,17 +61,17 @@ class InventoryController extends Controller
 
         $data['data'] = collect($data['data'])->map(function ($inventory) {
             return [
-                'id'         => $inventory->id,
-                'warehouse'  => $inventory->warehouse?->name,
-                'product'    => $inventory->product?->name,
-                'sku'        => $inventory->product?->sku,
-                'quantity'   => $inventory->quantity,
-                'reserved'   => $inventory->reserved,
-                'min_stock'  => $inventory->min_stock,
-                'max_stock'  => $inventory->max_stock,
+                'id' => $inventory->id,
+                'warehouse' => $inventory->warehouse?->name,
+                'product' => $inventory->product?->name,
+                'sku' => $inventory->product?->sku,
+                'quantity' => $inventory->quantity,
+                'reserved' => $inventory->reserved,
+                'min_stock' => $inventory->min_stock,
+                'max_stock' => $inventory->max_stock,
                 'updated_at' => $inventory->updated_at,
-                'trashed'    => $inventory->trashed(),
-                'actions'    => '',
+                'trashed' => $inventory->trashed(),
+                'actions' => '',
             ];
         });
 
@@ -80,9 +80,21 @@ class InventoryController extends Controller
 
     public function create()
     {
+        $user = auth()->user();
+
+        if ($user->hasRole('admin')) {
+            $warehouses = Warehouse::all();
+            $usedProductIds = Inventory::pluck('product_id')->unique();
+            $products = Product::whereNotIn('id', $usedProductIds)->get();
+        } else {
+            $warehouses = $user->warehouses;
+            $usedProductIds = Inventory::whereIn('warehouse_id', $warehouses->pluck('id'))->pluck('product_id')->unique();
+            $products = Product::whereNotIn('id', $usedProductIds)->get();
+        }
+
         return Inertia::render('Inventory/Form', [
-            'products'   => Product::all(),
-            'warehouses' => Warehouse::all(),
+            'products' => $products,
+            'warehouses' => $warehouses,
         ]);
     }
 
@@ -90,11 +102,11 @@ class InventoryController extends Controller
     {
         $validatedData = $request->validate([
             'warehouse_id' => 'required|exists:warehouses,id',
-            'product_id'   => 'required|exists:products,id',
-            'quantity'     => 'required|integer|min:0',
-            'reserved'     => 'nullable|integer|min:0',
-            'min_stock'    => 'nullable|integer|min:0',
-            'max_stock'    => 'nullable|integer|min:0',
+            'product_id' => 'required|exists:products,id',
+            'quantity' => 'required|integer|min:0',
+            'reserved' => 'nullable|integer|min:0',
+            'min_stock' => 'nullable|integer|min:0',
+            'max_stock' => 'nullable|integer|min:0',
         ]);
 
         $validatedData['updated_by'] = auth()->id();
@@ -107,10 +119,28 @@ class InventoryController extends Controller
     public function edit($id)
     {
         $inventory = Inventory::withTrashed()->findOrFail($id);
+        $user = auth()->user();
+
+        if ($user->hasRole('admin')) {
+            $warehouses = Warehouse::all();
+            $usedProductIds = Inventory::where('warehouse_id', $inventory->warehouse_id)
+                ->where('id', '!=', $inventory->id)
+                ->pluck('product_id')
+                ->unique();
+            $products = Product::whereNotIn('id', $usedProductIds)->get();
+        } else {
+            $warehouses = $user->warehouses;
+            $usedProductIds = Inventory::whereIn('warehouse_id', $warehouses->pluck('id'))
+                ->where('id', '!=', $inventory->id)
+                ->pluck('product_id')
+                ->unique();
+            $products = Product::whereNotIn('id', $usedProductIds)->get();
+        }
+
         return Inertia::render('Inventory/Form', [
-            'inventory'  => $inventory,
-            'products'   => Product::all(),
-            'warehouses' => Warehouse::all(),
+            'inventory' => $inventory,
+            'products' => $products,
+            'warehouses' => $warehouses,
         ]);
     }
 
@@ -118,14 +148,14 @@ class InventoryController extends Controller
     {
         $validatedData = $request->validate([
             'warehouse_id' => 'required|exists:warehouses,id',
-            'product_id'   => 'required|exists:products,id',
-            'quantity'     => 'required|integer|min:0',
-            'reserved'     => 'nullable|integer|min:0',
-            'min_stock'    => 'nullable|integer|min:0',
-            'max_stock'    => 'nullable|integer|min:0',
+            'product_id' => 'required|exists:products,id',
+            'quantity' => 'required|integer|min:0',
+            'reserved' => 'nullable|integer|min:0',
+            'min_stock' => 'nullable|integer|min:0',
+            'max_stock' => 'nullable|integer|min:0',
         ]);
 
-        $inventory                   = Inventory::withTrashed()->findOrFail($id);
+        $inventory = Inventory::withTrashed()->findOrFail($id);
         $validatedData['updated_by'] = auth()->id();
         $inventory->update($validatedData);
 
