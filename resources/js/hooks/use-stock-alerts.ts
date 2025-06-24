@@ -55,7 +55,39 @@ export function useStockAlerts() {
     const isListeningRef = useRef(false);
 
     const addAlert = useCallback((alert: StockAlert) => {
-        if (!mountedRef.current) return;
+        console.log('🚨 addAlert called with:', alert);
+        
+        if (!mountedRef.current) {
+            console.log('❌ Component not mounted, skipping alert');
+            return;
+        }
+
+        // Show toast notification IMMEDIATELY when alert is received
+        const alertTitle = alert.type === 'low_stock' ? '🔻 Stok Rendah' : '🔺 Stok Berlebih';
+        const alertMessage = `${alert.product_name} di ${alert.warehouse_name} - Stok: ${alert.current_quantity}`;
+        
+        console.log('🍞 Attempting to show Toastify:', { alertTitle, alertMessage });
+        
+        try {
+            Toastify({
+                text: `${alertTitle}: ${alertMessage}`,
+                className: alert.type === 'low_stock' ? 'error' : 'warning',
+                duration: 5000,
+                close: true,
+                gravity: "top",
+                position: "right",
+                onClick: () => window.open(`/inventory?search=${alert.product_name}`, '_blank'),
+                style: {
+                    background: alert.type === 'low_stock' 
+                        ? "linear-gradient(to right, #ff5f6d, #ffc371)" 
+                        : "linear-gradient(to right, #ffecd2, #fcb69f)",
+                },
+            }).showToast();
+            
+            console.log('✅ Toastify notification shown successfully');
+        } catch (toastError) {
+            console.error('❌ Error showing Toastify:', toastError);
+        }
 
         setState(prevState => {
             // Avoid duplicate alerts
@@ -64,30 +96,17 @@ export function useStockAlerts() {
                            existing.type === alert.type
             );
 
-            if (exists) return prevState;
+            if (exists) {
+                console.log('⚠️ Duplicate alert detected, skipping state update');
+                return prevState;
+            }
 
             const newAlerts = [alert, ...prevState.alerts];
             
             // Keep only last 50 alerts
             if (newAlerts.length > 50) {
                 newAlerts.splice(50);
-            }            // Show toast notification
-            const alertTitle = alert.type === 'low_stock' ? '🔻 Stok Rendah' : '🔺 Stok Berlebih';
-            const alertMessage = `${alert.product_name} di ${alert.warehouse_name} - Stok: ${alert.current_quantity}`;
-            
-            console.log('🍞 Showing Toastify notification:', { alertTitle, alertMessage });
-            
-            Toastify({
-                text: `${alertTitle}: ${alertMessage}`,
-                className: alert.type === 'low_stock' ? 'error' : 'warning',
-                duration: 5000,
-                onClick: () => window.open(`/inventory?search=${alert.product_name}`, '_blank'),
-                style: {
-                    background: alert.type === 'low_stock' 
-                        ? "linear-gradient(to right, #ff5f6d, #ffc371)" 
-                        : "linear-gradient(to right, #ffecd2, #fcb69f)",
-                },
-            }).showToast();
+            }
 
             // Show browser notification if supported and permitted
             if ('Notification' in window && Notification.permission === 'granted') {
@@ -118,7 +137,7 @@ export function useStockAlerts() {
         if (alertId) {
             try {
                 await fetch(`/stock-alerts/${alertId}/read`, {
-                    method: 'PATCH',
+                    method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                         'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
@@ -131,16 +150,14 @@ export function useStockAlerts() {
         
         setState(prevState => ({
             ...prevState,
-            unreadCount: alertId 
-                ? Math.max(0, prevState.unreadCount - 1)
-                : 0,
+            unreadCount: Math.max(0, prevState.unreadCount - 1),
         }));
     }, []);
 
     const markAllAsRead = useCallback(async () => {
         try {
             await fetch('/stock-alerts/read-all', {
-                method: 'PATCH',
+                method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
@@ -180,7 +197,9 @@ export function useStockAlerts() {
         if ('Notification' in window && Notification.permission === 'default') {
             await Notification.requestPermission();
         }
-    }, []);    const loadAlertsFromDatabase = useCallback(async () => {
+    }, []);
+
+    const loadAlertsFromDatabase = useCallback(async () => {
         try {
             const response = await fetch('/stock-alerts', {
                 headers: {
@@ -202,43 +221,46 @@ export function useStockAlerts() {
                 unreadCount: data.unread_count || 0,
                 lastUpdated: new Date(),
             }));
-            
-            console.log('Loaded alerts from database:', data);
         } catch (error) {
             console.error('Failed to load alerts from database:', error);
         }
     }, []);
 
-    // Load initial alerts on mount
+    // Effect to setup Echo listeners
     useEffect(() => {
-        loadAlertsFromDatabase();
-    }, [loadAlertsFromDatabase]);
+        mountedRef.current = true;
 
-    // Auto-start listening when hook is used - moved inside useEffect to avoid infinite loops
-    useEffect(() => {
-        console.log('🔄 useStockAlerts hook mounted');
-        console.log('📊 Echo available:', !!window.Echo);
-        console.log('🌍 Window Echo object:', window.Echo);
-        
-        // Request notification permission
-        if ('Notification' in window && Notification.permission === 'default') {
-            Notification.requestPermission();
-        }
-        
-        // Start listening for alerts - only if not already listening
-        if (!isListeningRef.current && window.Echo) {
+        // Request notification permission on mount
+        requestNotificationPermission();
+
+        // Load existing alerts from database
+        loadAlertsFromDatabase();
+
+        // Start listening for real-time events
+        const setupEcho = () => {
+            if (!window.Echo) {
+                console.log('⚠️ Echo not available, retrying in 1 second...');
+                setTimeout(setupEcho, 1000);
+                return;
+            }
+
+            if (isListeningRef.current) {
+                console.log('ℹ️ Already listening, skipping setup');
+                return;
+            }
+
             try {
-                // Listen to stock alerts channel
+                console.log('🔗 Setting up Echo listeners...');
+                
+                // Listen to stock level changed events - NAMA EVENT YANG BENAR!
                 channelRef.current = window.Echo.private('stock-alerts')
-                    .listen('stock.alert', (data: StockAlert) => {
-                        console.log('Stock alert received:', data);
-                        addAlert(data);
-                    })
                     .listen('stock.level.changed', (data: StockLevelChangedEvent) => {
-                        console.log('Stock level changed:', data);
+                        console.log('📊 stock.level.changed event received:', data);
+                        console.log('🎯 Alert type detected:', data.alert_type);
                         
                         // If there's an alert, add it
                         if (data.alert_type) {
+                            console.log('✅ Creating alert from stock level change');
                             const alert: StockAlert = {
                                 type: data.alert_type,
                                 message: `Stok ${data.product_name} di ${data.warehouse_name} ${
@@ -254,39 +276,44 @@ export function useStockAlerts() {
                                 warehouse_id: data.warehouse_id,
                                 timestamp: data.timestamp,
                             };
+                            console.log('📤 Calling addAlert with:', alert);
                             addAlert(alert);
+                        } else {
+                            console.log('ℹ️ No alert needed for this stock level change');
                         }
                     });
 
-                // Check connection status (optional)
+                // Check connection status
                 try {
                     if (window.Echo.connector?.pusher?.connection) {
                         window.Echo.connector.pusher.connection.bind('connected', () => {
                             if (mountedRef.current) {
                                 setState(prevState => ({ ...prevState, isConnected: true }));
-                                console.log('Connected to stock alerts');
+                                console.log('🟢 Connected to stock alerts channel');
                             }
                         });
 
                         window.Echo.connector.pusher.connection.bind('disconnected', () => {
                             if (mountedRef.current) {
                                 setState(prevState => ({ ...prevState, isConnected: false }));
-                                console.log('Disconnected from stock alerts');
+                                console.log('🔴 Disconnected from stock alerts channel');
                             }
                         });
                     }
                 } catch (connectionError) {
-                    console.warn('Could not bind to connection events:', connectionError);
+                    console.warn('⚠️ Could not bind to connection events:', connectionError);
                 }
 
                 isListeningRef.current = true;
                 setState(prevState => ({ ...prevState, isListening: true }));
-                console.log('Started listening for stock alerts');
+                console.log('✅ Echo listeners setup complete');
 
             } catch (error) {
-                console.error('Failed to start listening for stock alerts:', error);
+                console.error('❌ Failed to setup Echo listeners:', error);
             }
-        }
+        };
+
+        setupEcho();
 
         return () => {
             mountedRef.current = false;
@@ -294,53 +321,14 @@ export function useStockAlerts() {
                 window.Echo.leave('stock-alerts');
                 channelRef.current = null;
             }
-            isListeningRef.current = false;        };
-    }, [addAlert]); // addAlert is stable with empty deps
+            isListeningRef.current = false;
+        };
+    }, [addAlert, requestNotificationPermission, loadAlertsFromDatabase]);
 
     const startListening = useCallback(() => {
-        if (isListeningRef.current || !window.Echo) {
-            return;
-        }
-
-        try {
-            // Listen to stock alerts channel
-            channelRef.current = window.Echo.private('stock-alerts')
-                .listen('stock.alert', (data: StockAlert) => {
-                    console.log('Stock alert received:', data);
-                    addAlert(data);
-                })
-                .listen('stock.level.changed', (data: StockLevelChangedEvent) => {
-                    console.log('Stock level changed:', data);
-                    
-                    // If there's an alert, add it
-                    if (data.alert_type) {
-                        const alert: StockAlert = {
-                            type: data.alert_type,
-                            message: `Stok ${data.product_name} di ${data.warehouse_name} ${
-                                data.alert_type === 'low_stock' ? 'rendah' : 'berlebih'
-                            }`,
-                            inventory_id: data.inventory_id,
-                            product_name: data.product_name,
-                            warehouse_name: data.warehouse_name,
-                            current_quantity: data.new_quantity,
-                            min_stock: data.min_stock,
-                            max_stock: data.max_stock,
-                            product_id: data.product_id,
-                            warehouse_id: data.warehouse_id,
-                            timestamp: data.timestamp,
-                        };
-                        addAlert(alert);
-                    }
-                });
-
-            isListeningRef.current = true;
-            setState(prevState => ({ ...prevState, isListening: true }));
-            console.log('Started listening for stock alerts');
-
-        } catch (error) {
-            console.error('Failed to start listening for stock alerts:', error);
-        }
-    }, [addAlert]);
+        // This is handled by the useEffect now
+        console.log('startListening called - handled by useEffect');
+    }, []);
 
     const stopListening = useCallback(() => {
         if (channelRef.current) {
@@ -353,7 +341,9 @@ export function useStockAlerts() {
             isListening: false,
             isConnected: false,
         }));
-    }, []);    return {
+    }, []);
+
+    return {
         ...state,
         addAlert,
         markAsRead,
