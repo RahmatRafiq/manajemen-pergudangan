@@ -234,9 +234,7 @@ export function useStockAlerts() {
         requestNotificationPermission();
 
         // Load existing alerts from database
-        loadAlertsFromDatabase();
-
-        // Start listening for real-time events
+        loadAlertsFromDatabase();        // Start listening for real-time events
         const setupEcho = () => {
             if (!window.Echo) {
                 console.log('⚠️ Echo not available, retrying in 1 second...');
@@ -247,14 +245,15 @@ export function useStockAlerts() {
             if (isListeningRef.current) {
                 console.log('ℹ️ Already listening, skipping setup');
                 return;
-            }
-
-            try {
+            }            try {
                 console.log('🔗 Setting up Echo listeners...');
+                console.log('🔍 Testing public channel for live updates...');
+                  // Listen to PUBLIC channel first for testing
+                const publicChannel = window.Echo.channel('stock-alerts-public') as EchoChannel;
+                channelRef.current = publicChannel;
                 
-                // Listen to stock level changed events - NAMA EVENT YANG BENAR!
-                channelRef.current = window.Echo.private('stock-alerts')
-                    .listen('stock.level.changed', (data: StockLevelChangedEvent) => {
+                publicChannel.listen('stock.level.changed', (data: StockLevelChangedEvent) => {
+                        console.log('📊 *** LIVE UPDATE EVENT RECEIVED (PUBLIC CHANNEL) ***');
                         console.log('📊 stock.level.changed event received:', data);
                         console.log('🎯 Alert type detected:', data.alert_type);
                         
@@ -282,6 +281,8 @@ export function useStockAlerts() {
                             console.log('ℹ️ No alert needed for this stock level change');
                         }
                     });
+                
+                console.log('🎯 Subscribed to PUBLIC channel: stock-alerts-public');
 
                 // Check connection status
                 try {
@@ -321,9 +322,77 @@ export function useStockAlerts() {
                 window.Echo.leave('stock-alerts');
                 channelRef.current = null;
             }
-            isListeningRef.current = false;
-        };
+            isListeningRef.current = false;        };
     }, [addAlert, requestNotificationPermission, loadAlertsFromDatabase]);
+
+    // Auto-refresh fallback jika real-time gagal
+    useEffect(() => {
+        console.log('🔄 Setting up auto-refresh fallback...');
+        
+        const autoRefreshInterval = setInterval(async () => {
+            console.log('🔄 Auto-refresh: Checking for new alerts...');
+            
+            try {
+                const response = await fetch('/stock-alerts', {
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+                    },
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    const newAlerts = data.alerts || [];
+                    
+                    setState(prevState => {
+                        // Cek apakah ada alert baru
+                        if (newAlerts.length > prevState.alerts.length) {
+                            console.log('🎉 Auto-refresh: Found new alerts!', {
+                                old: prevState.alerts.length,
+                                new: newAlerts.length
+                            });
+                            
+                            // Tampilkan Toastify untuk alert terbaru
+                            const latestAlerts = newAlerts.slice(0, newAlerts.length - prevState.alerts.length);
+                            latestAlerts.forEach((alert: StockAlert) => {
+                                const alertTitle = alert.type === 'low_stock' ? '🔻 Stok Rendah' : '🔺 Stok Berlebih';
+                                const alertMessage = `${alert.product_name} di ${alert.warehouse_name} - Stok: ${alert.current_quantity}`;
+                                
+                                Toastify({
+                                    text: `${alertTitle}: ${alertMessage}`,
+                                    className: alert.type === 'low_stock' ? 'error' : 'warning',
+                                    duration: 5000,
+                                    close: true,
+                                    gravity: "top",
+                                    position: "right",
+                                    style: {
+                                        background: alert.type === 'low_stock' 
+                                            ? "linear-gradient(to right, #ff5f6d, #ffc371)" 
+                                            : "linear-gradient(to right, #ffecd2, #fcb69f)",
+                                    },
+                                }).showToast();
+                            });
+                        }
+                        
+                        return {
+                            ...prevState,
+                            alerts: newAlerts,
+                            unreadCount: data.unread_count || 0,
+                            lastUpdated: new Date(),
+                        };
+                    });
+                }
+            } catch (error) {
+                console.error('❌ Auto-refresh failed:', error);
+            }
+        }, 5000); // Refresh setiap 5 detik
+        
+        return () => {
+            console.log('🛑 Clearing auto-refresh interval');
+            clearInterval(autoRefreshInterval);
+        };
+    }, []); // Only run once
 
     const startListening = useCallback(() => {
         // This is handled by the useEffect now

@@ -33,9 +33,13 @@ export default function StockAlertsPage() {
     const [isLoading, setIsLoading] = useState(false);
 
     // Use alerts from hook (which includes database alerts)
-    const allAlerts = useMemo(() => alerts, [alerts]);
+    const allAlerts = useMemo(() => {
+        console.log('🔄 StockAlerts: allAlerts updated, count:', alerts.length);
+        return alerts;
+    }, [alerts]);
 
     const filterAlerts = useCallback(() => {
+        console.log('🔍 StockAlerts: Filtering alerts, total:', allAlerts.length);
         let filtered = allAlerts;
 
         // Filter by type
@@ -59,12 +63,14 @@ export default function StockAlertsPage() {
             return timeB - timeA;
         });
 
+        console.log('📊 StockAlerts: Filtered alerts, count:', filtered.length);
         setFilteredAlerts(filtered);
     }, [allAlerts, filterType, searchTerm]);
 
     useEffect(() => {
+        console.log('🎯 StockAlerts: useEffect triggered, running filterAlerts');
         filterAlerts();
-    }, [filterAlerts]);    const handleRefresh = async () => {
+    }, [filterAlerts]);const handleRefresh = async () => {
         setIsLoading(true);
         try {
             await loadAlertsFromDatabase();

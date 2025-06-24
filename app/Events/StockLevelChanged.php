@@ -33,10 +33,10 @@ class StockLevelChanged implements ShouldBroadcast
 
     /**
      * Get the channels the event should broadcast on.
-     */
-    public function broadcastOn(): array
+     */    public function broadcastOn(): array
     {
         return [
+            new Channel('stock-alerts-public'), // Public channel untuk testing
             new PrivateChannel('stock-alerts'),
             new PrivateChannel('warehouse.' . $this->inventory->warehouse_id),
         ];
