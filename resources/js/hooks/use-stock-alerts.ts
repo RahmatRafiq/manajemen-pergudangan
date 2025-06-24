@@ -71,17 +71,22 @@ export function useStockAlerts() {
             // Keep only last 50 alerts
             if (newAlerts.length > 50) {
                 newAlerts.splice(50);
-            }
-
-            // Show toast notification
+            }            // Show toast notification
             const alertTitle = alert.type === 'low_stock' ? '🔻 Stok Rendah' : '🔺 Stok Berlebih';
             const alertMessage = `${alert.product_name} di ${alert.warehouse_name} - Stok: ${alert.current_quantity}`;
+            
+            console.log('🍞 Showing Toastify notification:', { alertTitle, alertMessage });
             
             Toastify({
                 text: `${alertTitle}: ${alertMessage}`,
                 className: alert.type === 'low_stock' ? 'error' : 'warning',
                 duration: 5000,
                 onClick: () => window.open(`/inventory?search=${alert.product_name}`, '_blank'),
+                style: {
+                    background: alert.type === 'low_stock' 
+                        ? "linear-gradient(to right, #ff5f6d, #ffc371)" 
+                        : "linear-gradient(to right, #ffecd2, #fcb69f)",
+                },
             }).showToast();
 
             // Show browser notification if supported and permitted

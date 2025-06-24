@@ -11,6 +11,8 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Bell, Package, Loader2, Search, Filter, RefreshCw, CheckCircle } from 'lucide-react';
+import Toastify from 'toastify-js';
+import 'toastify-js/src/toastify.css';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -79,6 +81,17 @@ export default function StockAlertsPage() {
         clearAlerts();
     };
 
+    const handleTestToast = () => {
+        Toastify({
+            text: "🧪 Test Toast Notification - Toastify bekerja!",
+            duration: 3000,
+            className: "info",
+            style: {
+                background: "linear-gradient(to right, #00b09b, #96c93d)",
+            }
+        }).showToast();
+    };
+
     const lowStockCount = filteredAlerts.filter(alert => alert.type === 'low_stock').length;
     const overstockCount = filteredAlerts.filter(alert => alert.type === 'overstock').length;
 
@@ -108,8 +121,7 @@ export default function StockAlertsPage() {
                                 {isConnected ? 'Connected' : 'Disconnected'}
                             </span>
                         </div>
-                        
-                        <Button
+                          <Button
                             variant="outline"
                             size="sm"
                             onClick={handleRefresh}
@@ -121,6 +133,14 @@ export default function StockAlertsPage() {
                                 <RefreshCw className="h-4 w-4" />
                             )}
                             Refresh
+                        </Button>
+
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={handleTestToast}
+                        >
+                            🧪 Test Toast
                         </Button>
 
                         {unreadCount > 0 && (
