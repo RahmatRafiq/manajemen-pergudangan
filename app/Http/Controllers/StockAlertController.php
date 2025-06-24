@@ -104,4 +104,46 @@ class StockAlertController extends Controller
 
         return response()->json(['success' => true]);
     }
+
+    /**
+     * Get stock alerts for API
+     */
+    public function getAlertsApi(Request $request)
+    {
+        // Get current authenticated user
+        $user = Auth::user();
+        
+        if (!$user) {
+            return response()->json(['error' => 'Unauthorized'], 401);
+        }
+
+        // Get stock alerts from notifications table for this user
+        $notifications = $user->notifications()
+            ->where('type', 'App\\Notifications\\StockAlertNotification')
+            ->orderBy('created_at', 'desc')
+            ->limit(100)
+            ->get();
+
+        $alerts = $notifications->map(function ($notification) {
+            $data = $notification->data;
+            return [
+                'id' => $notification->id,
+                'type' => $data['type'] ?? 'low_stock',
+                'message' => $data['message'] ?? '',
+                'inventory_id' => $data['inventory_id'] ?? 0,
+                'product_name' => $data['product_name'] ?? '',
+                'warehouse_name' => $data['warehouse_name'] ?? '',
+                'current_quantity' => $data['current_quantity'] ?? 0,
+                'min_stock' => $data['min_stock'] ?? null,
+                'max_stock' => $data['max_stock'] ?? null,
+                'product_id' => $data['product_id'] ?? 0,
+                'warehouse_id' => $data['warehouse_id'] ?? 0,
+                'timestamp' => $notification->created_at->toISOString(),
+                'created_at' => $notification->created_at->toISOString(),
+                'read_at' => $notification->read_at,
+            ];
+        });
+
+        return response()->json($alerts);
+    }
 }

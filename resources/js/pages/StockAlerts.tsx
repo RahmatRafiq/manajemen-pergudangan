@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Head } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
-import { useStockAlerts } from '@/hooks/use-stock-alerts';
+import { useStockAlerts } from '@/hooks/use-stock-alerts-new';
 import { StockAlertCard } from '@/components/stock-alert-card';
 import { StockAlertStats } from '@/components/stock-alert-stats';
 import { type BreadcrumbItem } from '@/types';

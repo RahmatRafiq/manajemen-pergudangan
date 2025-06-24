@@ -3,7 +3,9 @@ export interface EchoChannel {
 }
 
 interface EchoPusherConnection {
-    bind: (event: string, callback: () => void) => void;
+    bind: (event: string, callback: (error?: Error) => void) => void;
+    unbind: (event: string, callback: (error?: Error) => void) => void;
+    state: string;
 }
 
 interface EchoPusherConnector {
@@ -14,6 +16,7 @@ interface EchoPusherConnector {
 
 interface EchoInstance {
     private: (channel: string) => EchoChannel;
+    channel: (channel: string) => EchoChannel;
     leave: (channel: string) => void;
     connector?: EchoPusherConnector;
 }

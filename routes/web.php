@@ -19,6 +19,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
         return Inertia::render('dashboard');
     })->name('dashboard');
 
+    // API Routes for Stock Alerts
+    Route::prefix('api')->group(function () {
+        Route::get('/stock-alerts', [StockAlertController::class, 'getAlertsApi'])->name('api.stock-alerts');
+    });
+
     // Stock Alerts Routes
     Route::get('/stock-alerts', [StockAlertController::class, 'index'])->name('stock-alerts.index');
     Route::patch('/stock-alerts/{alertId}/read', [StockAlertController::class, 'markAsRead'])->name('stock-alerts.read');
