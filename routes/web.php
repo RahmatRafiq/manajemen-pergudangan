@@ -2,6 +2,8 @@
 
 use App\Http\Controllers\ActivityLogController;
 use App\Http\Controllers\SocialAuthController;
+use App\Http\Controllers\StockTestController;
+use App\Http\Controllers\StockAlertController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -16,6 +18,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('dashboard', function () {
         return Inertia::render('dashboard');
     })->name('dashboard');
+
+    // Stock Alerts Routes
+    Route::get('/stock-alerts', [StockAlertController::class, 'index'])->name('stock-alerts.index');
+    Route::patch('/stock-alerts/{alertId}/read', [StockAlertController::class, 'markAsRead'])->name('stock-alerts.read');
+    Route::patch('/stock-alerts/read-all', [StockAlertController::class, 'markAllAsRead'])->name('stock-alerts.read-all');
+    Route::delete('/stock-alerts/clear', [StockAlertController::class, 'clear'])->name('stock-alerts.clear');
 
     Route::delete('/settings/profile/delete-file', [\App\Http\Controllers\Settings\ProfileController::class, 'deleteFile'])->name('profile.deleteFile');
     Route::post('/settings/profile/upload', [\App\Http\Controllers\Settings\ProfileController::class, 'upload'])->name('profile.upload');
@@ -70,6 +78,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::get('/inventory/sorted/warehouse/{warehouseId}/json', [\App\Http\Controllers\InventorySortController::class, 'jsonByWarehouse']);
     Route::get('/inventory/sorted/global/json', [\App\Http\Controllers\InventorySortController::class, 'jsonGlobal']);
+
+    // Stock Alert Testing Routes (for development)
+    Route::prefix('api/stock-test')->group(function () {
+        Route::post('/low-stock', [StockTestController::class, 'testLowStock'])->name('stock.test.low');
+        Route::post('/overstock', [StockTestController::class, 'testOverstock'])->name('stock.test.overstock');
+        Route::get('/alerts', [StockTestController::class, 'getStockAlerts'])->name('stock.test.alerts');
+        Route::post('/reset', [StockTestController::class, 'resetInventory'])->name('stock.test.reset');
+    });
 
     Route::post('logout', [SocialAuthController::class, 'logout'])->name('logout');
 
