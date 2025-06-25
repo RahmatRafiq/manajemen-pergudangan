@@ -127,7 +127,7 @@ class InventoryObserver
     private function getStockAlertRecipients(Inventory $inventory)
     {
         // Get admin users and regular users (you can customize this based on your needs)
-        $recipients = User::role(['admin'])->get();
+        $recipients = User::role(['admin', 'user'])->get();
 
         // If no admin users found, get all users
         if ($recipients->isEmpty()) {
