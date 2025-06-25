@@ -117,17 +117,6 @@ export default function StockAlertsPage() {
         }
     };
 
-    const handleTestToast = () => {
-        Toastify({
-            text: "🧪 Test Toast Notification - Toastify bekerja!",
-            duration: 3000,
-            className: "info",
-            style: {
-                background: "linear-gradient(to right, #00b09b, #96c93d)",
-            }
-        }).showToast();
-    };
-
     const lowStockCount = filteredAlerts.filter(alert => alert.type === 'low_stock').length;
     const overstockCount = filteredAlerts.filter(alert => alert.type === 'overstock').length;
 
@@ -167,13 +156,7 @@ export default function StockAlertsPage() {
                             )}
                             Refresh
                         </Button>
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={handleTestToast}
-                        >
-                            🧪 Test Toast
-                        </Button>
+                        
                         {unreadCount > 0 && (
                             <Button
                                 variant="outline"
