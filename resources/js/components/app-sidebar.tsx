@@ -4,7 +4,7 @@ import { NavUser } from '@/components/nav-user';
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar';
 import { type NavItem } from '@/types';
 import { Link } from '@inertiajs/react';
-import { BookOpen, Folder, LayoutGrid, Users, Shield, Activity, Key, User, Package, Bell, Warehouse } from 'lucide-react';
+import { BookOpen, Folder, LayoutGrid, Users, Shield, Activity, Key, User, Package, Bell } from 'lucide-react';
 import AppLogo from './app-logo';
 
 const mainNavItems: NavItem[] = [
@@ -64,23 +64,6 @@ const mainNavItems: NavItem[] = [
         title: 'Inventory Management',
         href: '/inventory',
         icon: Folder,
-        children: [
-            {
-                title: 'All Inventory',
-                href: '/inventory',
-                icon: Package,
-            },
-            {
-                title: 'Sorted by Warehouse',
-                href: '/inventory/sorted-warehouse',
-                icon: Warehouse,
-            },
-            {
-                title: 'Sorted Global',
-                href: '/inventory/sorted-global',
-                icon: LayoutGrid,
-            },
-        ],
     },
     {
         title: 'Stock Transactions',
