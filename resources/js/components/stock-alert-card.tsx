@@ -8,7 +8,7 @@ import { formatDistanceToNow } from 'date-fns';
 
 interface StockAlertCardProps {
     alert: StockAlert;
-    onMarkAsRead?: () => void;
+    onMarkAsRead?: () => Promise<void>;
 }
 
 export function StockAlertCard({ alert, onMarkAsRead }: StockAlertCardProps) {
@@ -19,7 +19,9 @@ export function StockAlertCard({ alert, onMarkAsRead }: StockAlertCardProps) {
         
         setIsMarkingAsRead(true);
         try {
-            onMarkAsRead();
+            await onMarkAsRead();
+        } catch (error) {
+            console.error('Error marking alert as read:', error);
         } finally {
             setIsMarkingAsRead(false);
         }

@@ -32,22 +32,15 @@ export default function StockAlertsPage() {
     const [filterType, setFilterType] = useState<'all' | 'low_stock' | 'overstock'>('all');
     const [isLoading, setIsLoading] = useState(false);
 
-    // Use alerts from hook (which includes database alerts)
     const allAlerts = useMemo(() => {
-        console.log('🔄 StockAlerts: allAlerts updated, count:', alerts.length);
         return alerts;
     }, [alerts]);
 
     const filterAlerts = useCallback(() => {
-        console.log('🔍 StockAlerts: Filtering alerts, total:', allAlerts.length);
         let filtered = allAlerts;
-
-        // Filter by type
         if (filterType !== 'all') {
             filtered = filtered.filter(alert => alert.type === filterType);
         }
-
-        // Filter by search term
         if (searchTerm) {
             filtered = filtered.filter(alert =>
                 alert.product_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -55,22 +48,19 @@ export default function StockAlertsPage() {
                 alert.message.toLowerCase().includes(searchTerm.toLowerCase())
             );
         }
-
-        // Sort by timestamp (newest first)
         filtered.sort((a, b) => {
             const timeA = new Date(a.timestamp || a.created_at || 0).getTime();
             const timeB = new Date(b.timestamp || b.created_at || 0).getTime();
             return timeB - timeA;
         });
-
-        console.log('📊 StockAlerts: Filtered alerts, count:', filtered.length);
         setFilteredAlerts(filtered);
     }, [allAlerts, filterType, searchTerm]);
 
     useEffect(() => {
-        console.log('🎯 StockAlerts: useEffect triggered, running filterAlerts');
         filterAlerts();
-    }, [filterAlerts]);const handleRefresh = async () => {
+    }, [filterAlerts]);
+
+    const handleRefresh = async () => {
         setIsLoading(true);
         try {
             await loadAlertsFromDatabase();
@@ -79,12 +69,52 @@ export default function StockAlertsPage() {
         }
     };
 
-    const handleMarkAllAsRead = () => {
-        markAllAsRead();
+    const handleMarkAllAsRead = async () => {
+        try {
+            await markAllAsRead();
+            Toastify({
+                text: "✅ All alerts marked as read",
+                duration: 3000,
+                className: "success",
+                style: {
+                    background: "linear-gradient(to right, #00b09b, #96c93d)",
+                }
+            }).showToast();
+        } catch (error) {
+            console.error('Error marking all alerts as read:', error);
+            Toastify({
+                text: "❌ Failed to mark all alerts as read",
+                duration: 3000,
+                className: "error",
+                style: {
+                    background: "linear-gradient(to right, #ff4757, #ff6b7a)",
+                }
+            }).showToast();
+        }
     };
 
-    const handleClearAll = () => {
-        clearAlerts();
+    const handleClearAll = async () => {
+        try {
+            await clearAlerts();
+            Toastify({
+                text: "🗑️ All alerts cleared",
+                duration: 3000,
+                className: "success",
+                style: {
+                    background: "linear-gradient(to right, #00b09b, #96c93d)",
+                }
+            }).showToast();
+        } catch (error) {
+            console.error('Error clearing alerts:', error);
+            Toastify({
+                text: "❌ Failed to clear alerts",
+                duration: 3000,
+                className: "error",
+                style: {
+                    background: "linear-gradient(to right, #ff4757, #ff6b7a)",
+                }
+            }).showToast();
+        }
     };
 
     const handleTestToast = () => {
@@ -104,9 +134,7 @@ export default function StockAlertsPage() {
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Stock Alerts" />
-            
             <div className="flex h-full flex-1 flex-col gap-6 p-6">
-                {/* Header */}
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                     <div className="flex items-center gap-3">
                         <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-orange-100 dark:bg-orange-900/20">
@@ -119,7 +147,6 @@ export default function StockAlertsPage() {
                             </p>
                         </div>
                     </div>
-
                     <div className="flex items-center gap-2">
                         <div className="flex items-center gap-2">
                             <div className={`h-2 w-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`} />
@@ -127,7 +154,7 @@ export default function StockAlertsPage() {
                                 {isConnected ? 'Connected' : 'Disconnected'}
                             </span>
                         </div>
-                          <Button
+                        <Button
                             variant="outline"
                             size="sm"
                             onClick={handleRefresh}
@@ -140,7 +167,6 @@ export default function StockAlertsPage() {
                             )}
                             Refresh
                         </Button>
-
                         <Button
                             variant="outline"
                             size="sm"
@@ -148,7 +174,6 @@ export default function StockAlertsPage() {
                         >
                             🧪 Test Toast
                         </Button>
-
                         {unreadCount > 0 && (
                             <Button
                                 variant="outline"
@@ -159,7 +184,6 @@ export default function StockAlertsPage() {
                                 Mark All Read
                             </Button>
                         )}
-
                         {filteredAlerts.length > 0 && (
                             <Button
                                 variant="outline"
@@ -171,16 +195,12 @@ export default function StockAlertsPage() {
                         )}
                     </div>
                 </div>
-
-                {/* Stats Cards */}
                 <StockAlertStats
                     totalAlerts={filteredAlerts.length}
                     lowStockCount={lowStockCount}
                     overstockCount={overstockCount}
                     unreadCount={unreadCount}
                 />
-
-                {/* Filters */}
                 <Card>
                     <CardHeader>
                         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -190,7 +210,6 @@ export default function StockAlertsPage() {
                                     {filteredAlerts.length} of {allAlerts.length} alerts
                                 </CardDescription>
                             </div>
-                            
                             <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
                                 <div className="relative">
                                     <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -201,7 +220,6 @@ export default function StockAlertsPage() {
                                         className="pl-9 sm:w-64"
                                     />
                                 </div>
-                                
                                 <Select value={filterType} onValueChange={(value: 'all' | 'low_stock' | 'overstock') => setFilterType(value)}>
                                     <SelectTrigger className="w-full sm:w-40">
                                         <Filter className="h-4 w-4" />
@@ -216,7 +234,6 @@ export default function StockAlertsPage() {
                             </div>
                         </div>
                     </CardHeader>
-                    
                     <CardContent>
                         {filteredAlerts.length === 0 ? (
                             <div className="flex h-64 flex-col items-center justify-center text-center">
@@ -232,10 +249,19 @@ export default function StockAlertsPage() {
                             </div>
                         ) : (
                             <div className="space-y-4">
-                                {filteredAlerts.map((alert, index) => (                                    <StockAlertCard
-                                    key={alert.id || `${alert.inventory_id}-${alert.type}-${index}`}
+                                {filteredAlerts.map((alert, index) => (
+                                    <StockAlertCard
+                                        key={alert.id || `${alert.inventory_id}-${alert.type}-${index}`}
                                         alert={alert}
-                                        onMarkAsRead={() => alert.id && markAsRead(alert.id)}
+                                        onMarkAsRead={async () => {
+                                            if (alert.id) {
+                                                try {
+                                                    await markAsRead(alert.id);
+                                                } catch (error) {
+                                                    console.error('Error marking alert as read:', error);
+                                                }
+                                            }
+                                        }}
                                     />
                                 ))}
                             </div>

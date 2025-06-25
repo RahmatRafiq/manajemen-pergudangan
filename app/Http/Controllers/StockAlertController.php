@@ -69,11 +69,22 @@ class StockAlertController extends Controller
     {
         $user = Auth::user();
         
-        DB::table('notifications')
+        if (!$user) {
+            return response()->json(['error' => 'Unauthorized'], 401);
+        }
+        
+        // Update the notification to mark as read
+        $updated = DB::table('notifications')
             ->where('id', $alertId)
             ->where('notifiable_type', 'App\\Models\\User')
             ->where('notifiable_id', $user->id)
+            ->where('type', 'App\\Notifications\\StockAlertNotification')
+            ->whereNull('read_at')
             ->update(['read_at' => now()]);
+
+        if ($updated === 0) {
+            return response()->json(['error' => 'Notification not found or already read'], 404);
+        }
 
         return response()->json(['success' => true]);
     }
@@ -82,27 +93,43 @@ class StockAlertController extends Controller
     {
         $user = Auth::user();
         
-        DB::table('notifications')
+        if (!$user) {
+            return response()->json(['error' => 'Unauthorized'], 401);
+        }
+        
+        // Mark all unread stock alert notifications as read
+        $updatedCount = DB::table('notifications')
             ->where('notifiable_type', 'App\\Models\\User')
             ->where('notifiable_id', $user->id)
             ->where('type', 'App\\Notifications\\StockAlertNotification')
             ->whereNull('read_at')
             ->update(['read_at' => now()]);
 
-        return response()->json(['success' => true]);
+        return response()->json([
+            'success' => true,
+            'marked_count' => $updatedCount
+        ]);
     }
 
     public function clear(Request $request)
     {
         $user = Auth::user();
         
-        DB::table('notifications')
+        if (!$user) {
+            return response()->json(['error' => 'Unauthorized'], 401);
+        }
+        
+        // Delete all stock alert notifications for this user
+        $deletedCount = DB::table('notifications')
             ->where('notifiable_type', 'App\\Models\\User')
             ->where('notifiable_id', $user->id)
             ->where('type', 'App\\Notifications\\StockAlertNotification')
             ->delete();
 
-        return response()->json(['success' => true]);
+        return response()->json([
+            'success' => true,
+            'deleted_count' => $deletedCount
+        ]);
     }
 
     /**

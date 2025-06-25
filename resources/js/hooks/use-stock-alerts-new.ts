@@ -22,9 +22,9 @@ interface UseStockAlertsReturn {
     alerts: StockAlert[];
     unreadCount: number;
     isConnected: boolean;
-    markAsRead: (alertId: string) => void;
-    markAllAsRead: () => void;
-    clearAlerts: () => void;
+    markAsRead: (alertId: string) => Promise<void>;
+    markAllAsRead: () => Promise<void>;
+    clearAlerts: () => Promise<void>;
     loadAlertsFromDatabase: () => Promise<void>;
 }
 
@@ -237,26 +237,125 @@ export function useStockAlerts(): UseStockAlertsReturn {
         console.log('🍞 Toast notification shown for alert:', alert.type);
     };
 
-    const markAsRead = useCallback((alertId: string) => {
-        setAlerts(prev => 
-            prev.map(alert => 
-                alert.id === alertId 
-                    ? { ...alert, read_at: new Date().toISOString() }
-                    : alert
-            )
-        );
+    const markAsRead = useCallback(async (alertId: string) => {
+        try {
+            console.log('📝 Marking alert as read:', alertId);
+            
+            // Update local state first for immediate UI feedback
+            setAlerts(prev => 
+                prev.map(alert => 
+                    alert.id === alertId 
+                        ? { ...alert, read_at: new Date().toISOString() }
+                        : alert
+                )
+            );
+
+            // Send request to server
+            const response = await fetch(`/stock-alerts/${alertId}/read`, {
+                method: 'PATCH',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+                },
+            });
+
+            if (!response.ok) {
+                console.error('❌ Failed to mark alert as read on server:', response.status);
+                // Revert local state if server request failed
+                setAlerts(prev => 
+                    prev.map(alert => 
+                        alert.id === alertId 
+                            ? { ...alert, read_at: null }
+                            : alert
+                    )
+                );
+            } else {
+                console.log('✅ Alert marked as read on server');
+            }
+        } catch (error) {
+            console.error('❌ Error marking alert as read:', error);
+            // Revert local state if request failed
+            setAlerts(prev => 
+                prev.map(alert => 
+                    alert.id === alertId 
+                        ? { ...alert, read_at: null }
+                        : alert
+                )
+            );
+        }
     }, []);
 
-    const markAllAsRead = useCallback(() => {
-        const now = new Date().toISOString();
-        setAlerts(prev => 
-            prev.map(alert => ({ ...alert, read_at: now }))
-        );
-    }, []);
+    const markAllAsRead = useCallback(async () => {
+        try {
+            console.log('📝 Marking all alerts as read');
+            
+            const now = new Date().toISOString();
+            const previousAlerts = [...alerts];
+            
+            // Update local state first for immediate UI feedback
+            setAlerts(prev => 
+                prev.map(alert => ({ ...alert, read_at: now }))
+            );
 
-    const clearAlerts = useCallback(() => {
-        setAlerts([]);
-    }, []);
+            // Send request to server
+            const response = await fetch('/stock-alerts/read-all', {
+                method: 'PATCH',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+                },
+            });
+
+            if (!response.ok) {
+                console.error('❌ Failed to mark all alerts as read on server:', response.status);
+                // Revert local state if server request failed
+                setAlerts(previousAlerts);
+            } else {
+                console.log('✅ All alerts marked as read on server');
+            }
+        } catch (error) {
+            console.error('❌ Error marking all alerts as read:', error);
+            // Revert local state if request failed
+            setAlerts(prev => 
+                prev.map(alert => ({ ...alert, read_at: null }))
+            );
+        }
+    }, [alerts]);
+
+    const clearAlerts = useCallback(async () => {
+        try {
+            console.log('🗑️ Clearing all alerts');
+            
+            const previousAlerts = [...alerts];
+            
+            // Update local state first for immediate UI feedback
+            setAlerts([]);
+
+            // Send request to server
+            const response = await fetch('/stock-alerts/clear', {
+                method: 'DELETE',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+                },
+            });
+
+            if (!response.ok) {
+                console.error('❌ Failed to clear alerts on server:', response.status);
+                // Revert local state if server request failed
+                setAlerts(previousAlerts);
+            } else {
+                console.log('✅ All alerts cleared on server');
+            }
+        } catch (error) {
+            console.error('❌ Error clearing alerts:', error);
+            // Revert local state if request failed
+            setAlerts(alerts);
+        }
+    }, [alerts]);
 
     const unreadCount = alerts.filter(alert => !alert.read_at).length;
 
