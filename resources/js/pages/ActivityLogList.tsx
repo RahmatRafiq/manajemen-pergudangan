@@ -4,17 +4,6 @@ import AppLayout from '@/layouts/app-layout';
 import { Card } from '@/components/ui/card';
 import '@/echo';
 
-declare global {
-  interface Window {
-    Echo: {
-      channel: (channelName: string) => {
-        listen: (eventName: string, callback: (data: ActivityLog) => void) => void;
-      };
-      leave: (channelName: string) => void;
-    };
-  }
-}
-
 interface ActivityLog {
   id: number;
   description: string;
@@ -42,14 +31,22 @@ export default function ActivityLogList() {
 
   useEffect(() => {
     // Subscribe ke channel 'activity-logs' dan listen event 'ActivityLogCreated'
+    if (!window.Echo) {
+      console.warn('⚠️ Echo not initialized yet');
+      return;
+    }
+
     window.Echo.channel('activity-logs')
-      .listen('ActivityLogCreated', (data: ActivityLog) => {
-        console.log('Received event:', data);
-        setLogs((prev) => [data, ...prev]);
+      .listen('ActivityLogCreated', (data: unknown) => {
+        const log = data as ActivityLog;
+        console.log('Received event:', log);
+        setLogs((prev) => [log, ...prev]);
       });
 
     return () => {
-      window.Echo.leave('activity-logs');
+      if (window.Echo) {
+        window.Echo.leave('activity-logs');
+      }
     };
   }, []);
 
