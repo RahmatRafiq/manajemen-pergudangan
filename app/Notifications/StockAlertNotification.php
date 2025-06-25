@@ -6,6 +6,7 @@ use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Notification;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Messages\BroadcastMessage;
+use Illuminate\Broadcasting\Channel;
 use Illuminate\Broadcasting\PrivateChannel;
 use App\Models\Inventory;
 
@@ -90,11 +91,24 @@ class StockAlertNotification extends Notification
     }
 
     /**
+     * Get the channels the notification should broadcast on.
+     */
+    public function broadcastOn(): array
+    {
+        return [
+            new Channel('stock-alerts-public'),
+            new PrivateChannel('stock-alerts'),
+            new PrivateChannel('warehouse.' . $this->inventory->warehouse_id),
+        ];
+    }
+
+    /**
      * The event's broadcast name.
      */
     public function broadcastAs(): string
     {
-        return 'stock.alert';    }
+        return 'stock.alert';
+    }
 
     /**
      * Generate appropriate message based on alert type.

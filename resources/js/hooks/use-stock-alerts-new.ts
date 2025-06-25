@@ -14,12 +14,29 @@ interface UseStockAlertsReturn {
     loadAlertsFromDatabase: () => Promise<void>;
 }
 
+interface UserNotification {
+    type: string;
+    message: string;
+    inventory_id: number;
+    product_name: string;
+    warehouse_name: string;
+    current_quantity: number;
+    min_stock: number;
+    max_stock: number;
+    product_id: number;
+    warehouse_id: number;
+    timestamp: string;
+}
+
+interface EchoChannelWithNotification extends EchoChannel {
+    notification: (callback: (notification: UserNotification) => void) => void;
+}
+
 export function useStockAlerts(): UseStockAlertsReturn {
     const [alerts, setAlerts] = useState<StockAlert[]>([]);
     const [isConnected, setIsConnected] = useState(false);
     const publicRef  = useRef<EchoChannel | null>(null);
     const privateRef = useRef<EchoChannel | null>(null);
-    const warehouseRef = useRef<EchoChannel | null>(null);
 
     const loadAlertsFromDatabase = useCallback(async () => {
         try {
@@ -89,17 +106,28 @@ export function useStockAlerts(): UseStockAlertsReturn {
             return;
         }
 
+        console.log('🔄 Setting up WebSocket listeners...');
+
         const conn = window.Echo?.connector?.pusher?.connection;
-        const onConn = () => setIsConnected(true);
-        const onDisc = () => setIsConnected(false);
+        const onConn = () => {
+            console.log('✅ WebSocket Connected');
+            setIsConnected(true);
+        };
+        const onDisc = () => {
+            console.log('❌ WebSocket Disconnected');
+            setIsConnected(false);
+        };
+        
         if (conn) {
             conn.bind('connected', onConn);
             conn.bind('disconnected', onDisc);
             if (conn.state === 'connected') setIsConnected(true);
         }
 
+        // Listen to manual event (StockLevelChanged)
         publicRef.current = window.Echo.channel('stock-alerts-public');
         publicRef.current.listen('stock.level.changed', (data: unknown) => {
+            console.log('📢 Received stock.level.changed on public channel:', data);
             const newAlert = mapEventToAlert(data as StockLevelChangedEvent);
             setAlerts(prev => [newAlert, ...prev]);
             showToastNotification(newAlert);
@@ -107,29 +135,81 @@ export function useStockAlerts(): UseStockAlertsReturn {
 
         privateRef.current = window.Echo.private('stock-alerts');
         privateRef.current.listen('stock.level.changed', (data: unknown) => {
+            console.log('📢 Received stock.level.changed on private channel:', data);
             const newAlert = mapEventToAlert(data as StockLevelChangedEvent);
             setAlerts(prev => [newAlert, ...prev]);
             showToastNotification(newAlert);
         });
 
-        const warehouseId = 1;
-        warehouseRef.current = window.Echo.private(`warehouse.${warehouseId}`);
-        warehouseRef.current.listen('stock.level.changed', (data: unknown) => {
-            const newAlert = mapEventToAlert(data as StockLevelChangedEvent);
-            setAlerts(prev => [newAlert, ...prev]);
-            showToastNotification(newAlert);
+        // Listen to notification event (StockAlertNotification)
+        privateRef.current.listen('.stock.alert', (data: unknown) => {
+            console.log('🔔 Received stock.alert notification:', data);
+            const stockAlert = data as StockAlert;
+            const alert = {
+                id: stockAlert.id || `notif-${Date.now()}`,
+                type: stockAlert.type,
+                message: stockAlert.message,
+                inventory_id: stockAlert.inventory_id,
+                product_name: stockAlert.product_name,
+                warehouse_name: stockAlert.warehouse_name,
+                current_quantity: stockAlert.current_quantity,
+                min_stock: stockAlert.min_stock,
+                max_stock: stockAlert.max_stock,
+                product_id: stockAlert.product_id,
+                warehouse_id: stockAlert.warehouse_id,
+                timestamp: stockAlert.timestamp,
+                created_at: new Date().toISOString(),
+                read_at: null,
+            };
+            setAlerts(prev => [alert, ...prev]);
+            showToastNotification(alert);
         });
+
+        // Listen to user-specific notifications (default Laravel notification channel)
+        const userId = document.querySelector('meta[name="user-id"]')?.getAttribute('content');
+        if (userId) {
+            const userChannel = window.Echo.private(`App.Models.User.${userId}`) as EchoChannelWithNotification;
+            userChannel.notification((notification: UserNotification) => {
+                console.log('👤 Received user notification:', notification);
+                if (notification.type === 'App\\Notifications\\StockAlertNotification') {
+                    const alert: StockAlert = {
+                        id: `user-notif-${Date.now()}`,
+                        type: notification.type.includes('low_stock') ? 'low_stock' : 'overstock',
+                        message: notification.message,
+                        inventory_id: notification.inventory_id,
+                        product_name: notification.product_name,
+                        warehouse_name: notification.warehouse_name,
+                        current_quantity: notification.current_quantity,
+                        min_stock: notification.min_stock,
+                        max_stock: notification.max_stock,
+                        product_id: notification.product_id,
+                        warehouse_id: notification.warehouse_id,
+                        timestamp: notification.timestamp,
+                        created_at: new Date().toISOString(),
+                        read_at: null,
+                    };
+                    setAlerts(prev => [alert, ...prev]);
+                    showToastNotification(alert);
+                }
+            });
+        }
 
         loadAlertsFromDatabase();
 
         return () => {
+            console.log('🧹 Cleaning up WebSocket listeners...');
             if (conn) {
                 conn.unbind('connected', onConn);
                 conn.unbind('disconnected', onDisc);
             }
-            if (window.Echo && publicRef.current)  window.Echo.leave('stock-alerts-public');
-            if (window.Echo && privateRef.current) window.Echo.leave('stock-alerts');
-            if (window.Echo && warehouseRef.current) window.Echo.leave(`warehouse.${warehouseId}`);
+            if (window.Echo && publicRef.current) {
+                window.Echo.leave('stock-alerts-public');
+                publicRef.current = null;
+            }
+            if (window.Echo && privateRef.current) {
+                window.Echo.leave('stock-alerts');
+                privateRef.current = null;
+            }
         };
     }, [loadAlertsFromDatabase]);
 
