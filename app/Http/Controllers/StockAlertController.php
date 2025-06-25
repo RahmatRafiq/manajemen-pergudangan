@@ -8,9 +8,9 @@ use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 
 class StockAlertController extends Controller
-{    public function index(Request $request)
+{
+    public function index(Request $request)
     {
-        // Get current authenticated user
         $user = Auth::user();
         
         if (!$user) {
@@ -20,7 +20,6 @@ class StockAlertController extends Controller
             return redirect()->route('login');
         }
 
-        // Get stock alerts from notifications table for this user
         $notifications = $user->notifications()
             ->where('type', 'App\\Notifications\\StockAlertNotification')
             ->orderBy('created_at', 'desc')
@@ -49,7 +48,6 @@ class StockAlertController extends Controller
 
         $unreadCount = $notifications->whereNull('read_at')->count();
 
-        // Return JSON for API requests
         if ($request->expectsJson()) {
             return response()->json([
                 'alerts' => $alerts,
@@ -58,7 +56,6 @@ class StockAlertController extends Controller
             ]);
         }
 
-        // Return Inertia page for web requests
         return Inertia::render('StockAlerts', [
             'initialAlerts' => $alerts,
             'totalAlerts' => $alerts->count(),
@@ -73,7 +70,6 @@ class StockAlertController extends Controller
             return response()->json(['error' => 'Unauthorized'], 401);
         }
         
-        // Update the notification to mark as read
         $updated = DB::table('notifications')
             ->where('id', $alertId)
             ->where('notifiable_type', 'App\\Models\\User')
@@ -97,7 +93,6 @@ class StockAlertController extends Controller
             return response()->json(['error' => 'Unauthorized'], 401);
         }
         
-        // Mark all unread stock alert notifications as read
         $updatedCount = DB::table('notifications')
             ->where('notifiable_type', 'App\\Models\\User')
             ->where('notifiable_id', $user->id)
@@ -119,7 +114,6 @@ class StockAlertController extends Controller
             return response()->json(['error' => 'Unauthorized'], 401);
         }
         
-        // Delete all stock alert notifications for this user
         $deletedCount = DB::table('notifications')
             ->where('notifiable_type', 'App\\Models\\User')
             ->where('notifiable_id', $user->id)
@@ -132,19 +126,14 @@ class StockAlertController extends Controller
         ]);
     }
 
-    /**
-     * Get stock alerts for API
-     */
     public function getAlertsApi(Request $request)
     {
-        // Get current authenticated user
         $user = Auth::user();
         
         if (!$user) {
             return response()->json(['error' => 'Unauthorized'], 401);
         }
 
-        // Get stock alerts from notifications table for this user
         $notifications = $user->notifications()
             ->where('type', 'App\\Notifications\\StockAlertNotification')
             ->orderBy('created_at', 'desc')
