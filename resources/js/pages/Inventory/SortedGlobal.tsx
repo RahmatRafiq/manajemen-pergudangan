@@ -1,5 +1,6 @@
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
+import { useState, useMemo } from 'react';
 
 type Product = {
     id: number;
@@ -36,23 +37,61 @@ type Props = {
 };
 
 export default function SortedGlobal({ inventories, period, periods }: Props) {
+    const [movementFilter, setMovementFilter] = useState<string>('all');
+    const [sortBy, setSortBy] = useState<'movement' | 'quantity' | 'ratio'>('movement');
+    const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+
     const handlePeriodChange = (newPeriod: string) => {
-        window.location.href = `/inventory/sorted/global?period=${newPeriod}`;
+        router.get('/inventory/sorted/global', { period: newPeriod }, {
+            preserveState: true,
+            preserveScroll: true,
+        });
     };
 
-    const handleFilterByMovement = (category: string) => {
-        const currentUrl = new URL(window.location.href);
-        if (category === 'all') {
-            currentUrl.searchParams.delete('movement_filter');
-        } else {
-            currentUrl.searchParams.set('movement_filter', category);
+    // Filter dan sort data secara client-side
+    const filteredAndSortedInventories = useMemo(() => {
+        let filtered = inventories;
+
+        // Apply movement filter
+        if (movementFilter !== 'all') {
+            filtered = filtered.filter(inv => inv.movement_category === movementFilter);
         }
-        window.location.href = currentUrl.toString();
-    };
+
+        // Apply sorting
+        filtered = [...filtered].sort((a, b) => {
+            let aValue, bValue;
+            
+            switch (sortBy) {
+                case 'movement':
+                    aValue = a.total_movement || 0;
+                    bValue = b.total_movement || 0;
+                    break;
+                case 'quantity':
+                    aValue = a.total_quantity || 0;
+                    bValue = b.total_quantity || 0;
+                    break;
+                case 'ratio':
+                    aValue = a.movement_ratio || 0;
+                    bValue = b.movement_ratio || 0;
+                    break;
+                default:
+                    aValue = a.total_movement || 0;
+                    bValue = b.total_movement || 0;
+            }
+
+            if (sortOrder === 'asc') {
+                return aValue - bValue;
+            } else {
+                return bValue - aValue;
+            }
+        });
+
+        return filtered;
+    }, [inventories, movementFilter, sortBy, sortOrder]);
 
     const exportToCSV = () => {
         const headers = ['Produk', 'SKU', 'Stock Total', 'Pergerakan', 'Transaksi', 'Kategori', 'Rasio', 'Rekomendasi'];
-        const csvData = inventories.map(inv => [
+        const csvData = filteredAndSortedInventories.map(inv => [
             inv.product?.name || '',
             inv.product?.sku || '',
             inv.total_quantity,
@@ -98,16 +137,23 @@ export default function SortedGlobal({ inventories, period, periods }: Props) {
         return badges[status as keyof typeof badges] || 'bg-gray-100 text-gray-800';
     };
 
-    // Statistics calculation
-    const stats = {
-        total: inventories.length,
-        noMovement: inventories.filter(inv => inv.movement_category === 'no_movement').length,
-        lowMovement: inventories.filter(inv => inv.movement_category === 'low_movement').length,
-        mediumMovement: inventories.filter(inv => inv.movement_category === 'medium_movement').length,
-        highMovement: inventories.filter(inv => inv.movement_category === 'high_movement').length,
-        avgRatio: inventories.length > 0 ? (inventories.reduce((sum, inv) => sum + (inv.movement_ratio || 0), 0) / inventories.length).toFixed(2) : '0',
-        needAttention: inventories.filter(inv => ['no_movement', 'low_movement'].includes(inv.movement_category)).length
-    };
+    // Statistics calculation berdasarkan data yang sudah difilter
+    const stats = useMemo(() => {
+        const allInventories = inventories;
+        const filtered = filteredAndSortedInventories;
+        
+        return {
+            total: allInventories.length,
+            filtered: filtered.length,
+            noMovement: allInventories.filter(inv => inv.movement_category === 'no_movement').length,
+            lowMovement: allInventories.filter(inv => inv.movement_category === 'low_movement').length,
+            mediumMovement: allInventories.filter(inv => inv.movement_category === 'medium_movement').length,
+            highMovement: allInventories.filter(inv => inv.movement_category === 'high_movement').length,
+            avgRatio: allInventories.length > 0 ? (allInventories.reduce((sum, inv) => sum + (inv.movement_ratio || 0), 0) / allInventories.length).toFixed(2) : '0',
+            needAttention: allInventories.filter(inv => ['no_movement', 'low_movement'].includes(inv.movement_category)).length,
+            filteredAvgRatio: filtered.length > 0 ? (filtered.reduce((sum, inv) => sum + (inv.movement_ratio || 0), 0) / filtered.length).toFixed(2) : '0'
+        };
+    }, [inventories, filteredAndSortedInventories]);
 
     return (
         <AppLayout>
@@ -125,7 +171,7 @@ export default function SortedGlobal({ inventories, period, periods }: Props) {
                             onClick={exportToCSV}
                             className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
                         >
-                            Export CSV
+                            Export CSV ({stats.filtered} items)
                         </button>
                         <Link href="/inventory" className="px-4 py-2 text-blue-600 hover:underline border border-blue-600 rounded-lg">
                             ← Kembali ke Inventory
@@ -134,7 +180,7 @@ export default function SortedGlobal({ inventories, period, periods }: Props) {
                 </div>
 
                 {/* Controls */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
                     {/* Period Filter */}
                     <div className="bg-white p-4 rounded-lg shadow">
                         <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -156,36 +202,81 @@ export default function SortedGlobal({ inventories, period, periods }: Props) {
                         <label className="block text-sm font-medium text-gray-700 mb-2">
                             Filter Pergerakan:
                         </label>
-                        <div className="flex gap-2 flex-wrap">
+                        <div className="flex gap-1 flex-wrap">
                             <button 
-                                onClick={() => handleFilterByMovement('all')}
-                                className="px-3 py-1 text-xs border rounded-full hover:bg-gray-50"
+                                onClick={() => setMovementFilter('all')}
+                                className={`px-3 py-1 text-xs border rounded-full transition-colors ${
+                                    movementFilter === 'all' 
+                                        ? 'bg-blue-500 text-white border-blue-500' 
+                                        : 'hover:bg-gray-50 border-gray-300'
+                                }`}
                             >
-                                Semua
+                                Semua ({stats.total})
                             </button>
                             <button 
-                                onClick={() => handleFilterByMovement('no_movement')}
-                                className="px-3 py-1 text-xs border rounded-full hover:bg-red-50 text-red-600 border-red-200"
+                                onClick={() => setMovementFilter('no_movement')}
+                                className={`px-3 py-1 text-xs border rounded-full transition-colors ${
+                                    movementFilter === 'no_movement' 
+                                        ? 'bg-red-500 text-white border-red-500' 
+                                        : 'hover:bg-red-50 text-red-600 border-red-200'
+                                }`}
                             >
-                                Tidak Bergerak
+                                Tidak Bergerak ({stats.noMovement})
                             </button>
                             <button 
-                                onClick={() => handleFilterByMovement('low_movement')}
-                                className="px-3 py-1 text-xs border rounded-full hover:bg-yellow-50 text-yellow-600 border-yellow-200"
+                                onClick={() => setMovementFilter('low_movement')}
+                                className={`px-3 py-1 text-xs border rounded-full transition-colors ${
+                                    movementFilter === 'low_movement' 
+                                        ? 'bg-yellow-500 text-white border-yellow-500' 
+                                        : 'hover:bg-yellow-50 text-yellow-600 border-yellow-200'
+                                }`}
                             >
-                                Rendah
+                                Rendah ({stats.lowMovement})
                             </button>
                             <button 
-                                onClick={() => handleFilterByMovement('medium_movement')}
-                                className="px-3 py-1 text-xs border rounded-full hover:bg-blue-50 text-blue-600 border-blue-200"
+                                onClick={() => setMovementFilter('medium_movement')}
+                                className={`px-3 py-1 text-xs border rounded-full transition-colors ${
+                                    movementFilter === 'medium_movement' 
+                                        ? 'bg-blue-500 text-white border-blue-500' 
+                                        : 'hover:bg-blue-50 text-blue-600 border-blue-200'
+                                }`}
                             >
-                                Sedang
+                                Sedang ({stats.mediumMovement})
                             </button>
                             <button 
-                                onClick={() => handleFilterByMovement('high_movement')}
-                                className="px-3 py-1 text-xs border rounded-full hover:bg-green-50 text-green-600 border-green-200"
+                                onClick={() => setMovementFilter('high_movement')}
+                                className={`px-3 py-1 text-xs border rounded-full transition-colors ${
+                                    movementFilter === 'high_movement' 
+                                        ? 'bg-green-500 text-white border-green-500' 
+                                        : 'hover:bg-green-50 text-green-600 border-green-200'
+                                }`}
                             >
-                                Tinggi
+                                Tinggi ({stats.highMovement})
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Sort Options */}
+                    <div className="bg-white p-4 rounded-lg shadow">
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Urutkan berdasarkan:
+                        </label>
+                        <div className="flex gap-2">
+                            <select 
+                                value={sortBy} 
+                                onChange={(e) => setSortBy(e.target.value as 'movement' | 'quantity' | 'ratio')}
+                                className="border border-gray-300 rounded-md px-3 py-2 bg-white flex-1"
+                            >
+                                <option value="movement">Pergerakan</option>
+                                <option value="quantity">Stock Total</option>
+                                <option value="ratio">Rasio</option>
+                            </select>
+                            <button
+                                onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+                                className="px-3 py-2 border border-gray-300 rounded-md hover:bg-gray-50"
+                                title={`Saat ini: ${sortOrder === 'asc' ? 'Terendah ke Tertinggi' : 'Tertinggi ke Terendah'}`}
+                            >
+                                {sortOrder === 'asc' ? '↑' : '↓'}
                             </button>
                         </div>
                     </div>
@@ -196,6 +287,9 @@ export default function SortedGlobal({ inventories, period, periods }: Props) {
                     <div className="bg-white p-4 rounded-lg shadow">
                         <h3 className="text-sm font-medium text-gray-600">Total Produk</h3>
                         <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
+                        {movementFilter !== 'all' && (
+                            <p className="text-xs text-gray-500">Tampil: {stats.filtered}</p>
+                        )}
                     </div>
                     <div className="bg-red-50 p-4 rounded-lg">
                         <h3 className="text-sm font-medium text-red-800">Tidak Bergerak</h3>
@@ -227,13 +321,15 @@ export default function SortedGlobal({ inventories, period, periods }: Props) {
                     </div>
                     <div className="bg-purple-50 p-4 rounded-lg">
                         <h3 className="text-sm font-medium text-purple-800">Rasio Rata-rata</h3>
-                        <p className="text-2xl font-bold text-purple-900">{stats.avgRatio}</p>
+                        <p className="text-2xl font-bold text-purple-900">
+                            {movementFilter === 'all' ? stats.avgRatio : stats.filteredAvgRatio}
+                        </p>
                         <p className="text-xs text-purple-600">movement/stock</p>
                     </div>
                 </div>
 
                 {/* Key Insights */}
-                {stats.needAttention > 0 && (
+                {stats.needAttention > 0 && movementFilter === 'all' && (
                     <div className="bg-orange-50 border-l-4 border-orange-400 p-4 mb-6">
                         <div className="flex">
                             <div className="ml-3">
@@ -251,6 +347,30 @@ export default function SortedGlobal({ inventories, period, periods }: Props) {
                     </div>
                 )}
 
+                {/* Filter Info */}
+                {movementFilter !== 'all' && (
+                    <div className="bg-blue-50 border-l-4 border-blue-400 p-4 mb-6">
+                        <div className="flex">
+                            <div className="ml-3">
+                                <h3 className="text-sm font-medium text-blue-800">
+                                    Filter Aktif: {movementFilter.replace('_', ' ').toUpperCase()}
+                                </h3>
+                                <div className="mt-2 text-sm text-blue-700">
+                                    <p>
+                                        Menampilkan {stats.filtered} dari {stats.total} produk. 
+                                        <button 
+                                            onClick={() => setMovementFilter('all')}
+                                            className="ml-2 underline hover:no-underline"
+                                        >
+                                            Tampilkan semua
+                                        </button>
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
                 {/* Data Table */}
                 <div className="bg-white rounded-lg shadow overflow-hidden">
                     <table className="min-w-full">
@@ -259,17 +379,20 @@ export default function SortedGlobal({ inventories, period, periods }: Props) {
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                     Produk
                                 </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Stock Total
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                                    onClick={() => setSortBy('quantity')}>
+                                    Stock Total {sortBy === 'quantity' && (sortOrder === 'asc' ? '↑' : '↓')}
                                 </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Pergerakan
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                                    onClick={() => setSortBy('movement')}>
+                                    Pergerakan {sortBy === 'movement' && (sortOrder === 'asc' ? '↑' : '↓')}
                                 </th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                     Kategori
                                 </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Rasio
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                                    onClick={() => setSortBy('ratio')}>
+                                    Rasio {sortBy === 'ratio' && (sortOrder === 'asc' ? '↑' : '↓')}
                                 </th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                     Rekomendasi
@@ -277,7 +400,7 @@ export default function SortedGlobal({ inventories, period, periods }: Props) {
                             </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
-                            {inventories.map((inv, index) => (
+                            {filteredAndSortedInventories.map((inv, index) => (
                                 <tr key={`${inv.product_id}-${inv.warehouse_id}`} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
                                     <td className="px-6 py-4 whitespace-nowrap">
                                         <div>
@@ -324,9 +447,12 @@ export default function SortedGlobal({ inventories, period, periods }: Props) {
                     </table>
                 </div>
 
-                {inventories.length === 0 && (
+                {filteredAndSortedInventories.length === 0 && (
                     <div className="text-center py-8 text-gray-500">
-                        Tidak ada data inventory untuk periode ini.
+                        {movementFilter === 'all' 
+                            ? 'Tidak ada data inventory untuk periode ini.'
+                            : `Tidak ada produk dengan kategori ${movementFilter.replace('_', ' ')}.`
+                        }
                     </div>
                 )}
             </div>
