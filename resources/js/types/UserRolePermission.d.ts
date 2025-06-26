@@ -20,5 +20,6 @@ export interface User {
     deleted_at: string;
     roles: string[];
     role_id: number;
+    warehouse_ids?: number[];
     trashed?: boolean;
 }
