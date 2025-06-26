@@ -152,8 +152,8 @@ class Inventory extends Model
                 DB::raw('COUNT(stock_transactions.id) as transaction_count'),
                 DB::raw('CASE 
                     WHEN COALESCE(SUM(ABS(stock_transactions.quantity)), 0) = 0 THEN "no_movement"
-                    WHEN COALESCE(SUM(ABS(stock_transactions.quantity)), 0) < 10 THEN "low_movement"
-                    WHEN COALESCE(SUM(ABS(stock_transactions.quantity)), 0) < 50 THEN "medium_movement"
+                    WHEN COALESCE(SUM(ABS(stock_transactions.quantity)), 0) < 20 THEN "low_movement"
+                    WHEN COALESCE(SUM(ABS(stock_transactions.quantity)), 0) < 100 THEN "medium_movement"
                     ELSE "high_movement"
                 END as movement_category')
             ])
@@ -198,7 +198,12 @@ class Inventory extends Model
     
     protected static function getRecommendation($item)
     {
-        if ($item->total_movement == 0) {
+        $totalMovement = $item->total_movement;
+        $totalStock = $item->total_quantity;
+        $movementRatio = $item->movement_ratio;
+        
+        // Jika tidak ada pergerakan sama sekali
+        if ($totalMovement == 0) {
             return [
                 'status' => 'danger',
                 'text' => 'Tidak ada pergerakan - pertimbangkan untuk tidak menambah stock bulan depan',
@@ -206,26 +211,68 @@ class Inventory extends Model
             ];
         }
         
-        if ($item->movement_ratio < 0.1) {
-            return [
-                'status' => 'warning', 
-                'text' => 'Pergerakan sangat lambat - kurangi pesanan bulan depan',
-                'action' => 'reduce_reorder'
-            ];
+        // Untuk produk dengan pergerakan tinggi (>= 100 unit), fokus ke rasio
+        if ($totalMovement >= 100) {
+            if ($movementRatio >= 0.05) { // 5% atau lebih dari stock bergerak
+                return [
+                    'status' => 'success',
+                    'text' => 'Pergerakan tinggi dengan rasio baik - stock berputar optimal',
+                    'action' => 'maintain_or_increase'
+                ];
+            } else {
+                return [
+                    'status' => 'info',
+                    'text' => 'Pergerakan tinggi tapi rasio rendah - monitor trend, pertahankan level saat ini',
+                    'action' => 'maintain'
+                ];
+            }
         }
         
-        if ($item->movement_ratio < 0.5) {
-            return [
-                'status' => 'info',
-                'text' => 'Pergerakan normal - pertahankan level stock',
-                'action' => 'maintain'
-            ];
+        // Untuk produk dengan pergerakan sedang (20-99 unit)
+        if ($totalMovement >= 20) {
+            if ($movementRatio >= 0.1) { // 10% atau lebih
+                return [
+                    'status' => 'success',
+                    'text' => 'Pergerakan sedang dengan rasio baik - stock berputar efisien',
+                    'action' => 'maintain_or_increase'
+                ];
+            } else if ($movementRatio >= 0.02) { // 2-10%
+                return [
+                    'status' => 'info',
+                    'text' => 'Pergerakan sedang - pertahankan level stock',
+                    'action' => 'maintain'
+                ];
+            } else {
+                return [
+                    'status' => 'warning',
+                    'text' => 'Pergerakan sedang tapi rasio sangat rendah - terlalu banyak stock',
+                    'action' => 'reduce_reorder'
+                ];
+            }
         }
         
+        // Untuk produk dengan pergerakan rendah (1-19 unit)
+        if ($totalMovement > 0) {
+            if ($movementRatio >= 0.1) {
+                return [
+                    'status' => 'info',
+                    'text' => 'Pergerakan rendah tapi rasio baik - stock sesuai dengan demand',
+                    'action' => 'maintain'
+                ];
+            } else {
+                return [
+                    'status' => 'warning',
+                    'text' => 'Pergerakan rendah dengan rasio rendah - kurangi pesanan bulan depan',
+                    'action' => 'reduce_reorder'
+                ];
+            }
+        }
+        
+        // Fallback
         return [
-            'status' => 'success',
-            'text' => 'Pergerakan tinggi - stock berputar dengan baik',
-            'action' => 'increase_if_needed'
+            'status' => 'info',
+            'text' => 'Pergerakan normal - pertahankan level stock',
+            'action' => 'maintain'
         ];
     }
     
