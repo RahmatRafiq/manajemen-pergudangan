@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\ActivityLogController;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\SocialAuthController;
 use App\Http\Controllers\StockTestController;
 use App\Http\Controllers\StockAlertController;
@@ -15,9 +16,7 @@ Route::get('auth/{provider}', [SocialAuthController::class, 'redirectToProvider'
 Route::get('auth/{provider}/callback', [SocialAuthController::class, 'handleProviderCallback'])->name('auth.callback');
 
 Route::middleware(['auth', 'verified'])->group(function () {
-    Route::get('dashboard', function () {
-        return Inertia::render('dashboard');
-    })->name('dashboard');
+    Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
     // API Routes for Stock Alerts
     Route::prefix('api')->group(function () {
