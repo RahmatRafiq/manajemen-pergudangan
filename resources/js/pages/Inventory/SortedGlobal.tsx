@@ -90,7 +90,7 @@ export default function SortedGlobal({ inventories, period, periods }: Props) {
     }, [inventories, movementFilter, sortBy, sortOrder]);
 
     const exportToCSV = () => {
-        const headers = ['Produk', 'SKU', 'Stock Total', 'Pergerakan', 'Transaksi', 'Kategori', 'Rasio', 'Rekomendasi'];
+        const headers = ['Product', 'SKU', 'Total Stock', 'Movement', 'Transactions', 'Category', 'Ratio', 'Recommendation'];
         const csvData = filteredAndSortedInventories.map(inv => [
             inv.product?.name || '',
             inv.product?.sku || '',
@@ -110,7 +110,7 @@ export default function SortedGlobal({ inventories, period, periods }: Props) {
         const link = document.createElement('a');
         const url = URL.createObjectURL(blob);
         link.setAttribute('href', url);
-        link.setAttribute('download', `analisis-pergerakan-${period}-${new Date().toISOString().split('T')[0]}.csv`);
+        link.setAttribute('download', `movement-analysis-${period}-${new Date().toISOString().split('T')[0]}.csv`);
         link.style.visibility = 'hidden';
         document.body.appendChild(link);
         link.click();
@@ -157,13 +157,13 @@ export default function SortedGlobal({ inventories, period, periods }: Props) {
 
     return (
         <AppLayout>
-            <Head title="Analisis Pergerakan Inventory" />
+            <Head title="Inventory Movement Analysis" />
             <div className="px-4 py-6">
                 <div className="flex justify-between items-center mb-6">
                     <div>
-                        <h1 className="text-2xl font-semibold">Analisis Pergerakan Inventory</h1>
+                        <h1 className="text-2xl font-semibold">Inventory Movement Analysis</h1>
                         <p className="text-gray-600 mt-1">
-                            Analisis pergerakan stock untuk mengoptimalkan purchasing dan mencegah dead stock
+                            Stock movement analysis to optimize purchasing and prevent dead stock
                         </p>
                     </div>
                     <div className="flex gap-3">
@@ -174,7 +174,7 @@ export default function SortedGlobal({ inventories, period, periods }: Props) {
                             Export CSV ({stats.filtered} items)
                         </button>
                         <Link href="/inventory" className="px-4 py-2 text-blue-600 hover:underline border border-blue-600 rounded-lg">
-                            ← Kembali ke Inventory
+                            ← Back to Inventory
                         </Link>
                     </div>
                 </div>
@@ -184,7 +184,7 @@ export default function SortedGlobal({ inventories, period, periods }: Props) {
                     {/* Period Filter */}
                     <div className="bg-white p-4 rounded-lg shadow">
                         <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Periode Analisis:
+                            Analysis Period:
                         </label>
                         <select 
                             value={period} 
@@ -200,7 +200,7 @@ export default function SortedGlobal({ inventories, period, periods }: Props) {
                     {/* Movement Filter */}
                     <div className="bg-white p-4 rounded-lg shadow">
                         <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Filter Pergerakan:
+                            Movement Filter:
                         </label>
                         <div className="flex gap-1 flex-wrap">
                             <button 
@@ -211,7 +211,7 @@ export default function SortedGlobal({ inventories, period, periods }: Props) {
                                         : 'hover:bg-gray-50 border-gray-300'
                                 }`}
                             >
-                                Semua ({stats.total})
+                                All ({stats.total})
                             </button>
                             <button 
                                 onClick={() => setMovementFilter('no_movement')}
@@ -221,7 +221,7 @@ export default function SortedGlobal({ inventories, period, periods }: Props) {
                                         : 'hover:bg-red-50 text-red-600 border-red-200'
                                 }`}
                             >
-                                Tidak Bergerak ({stats.noMovement})
+                                No Movement ({stats.noMovement})
                             </button>
                             <button 
                                 onClick={() => setMovementFilter('low_movement')}
@@ -231,7 +231,7 @@ export default function SortedGlobal({ inventories, period, periods }: Props) {
                                         : 'hover:bg-yellow-50 text-yellow-600 border-yellow-200'
                                 }`}
                             >
-                                Rendah ({stats.lowMovement})
+                                Low ({stats.lowMovement})
                             </button>
                             <button 
                                 onClick={() => setMovementFilter('medium_movement')}
@@ -241,7 +241,7 @@ export default function SortedGlobal({ inventories, period, periods }: Props) {
                                         : 'hover:bg-blue-50 text-blue-600 border-blue-200'
                                 }`}
                             >
-                                Sedang ({stats.mediumMovement})
+                                Medium ({stats.mediumMovement})
                             </button>
                             <button 
                                 onClick={() => setMovementFilter('high_movement')}
@@ -251,7 +251,7 @@ export default function SortedGlobal({ inventories, period, periods }: Props) {
                                         : 'hover:bg-green-50 text-green-600 border-green-200'
                                 }`}
                             >
-                                Tinggi ({stats.highMovement})
+                                High ({stats.highMovement})
                             </button>
                         </div>
                     </div>
@@ -259,7 +259,7 @@ export default function SortedGlobal({ inventories, period, periods }: Props) {
                     {/* Sort Options */}
                     <div className="bg-white p-4 rounded-lg shadow">
                         <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Urutkan berdasarkan:
+                            Sort by:
                         </label>
                         <div className="flex gap-2">
                             <select 
@@ -267,14 +267,14 @@ export default function SortedGlobal({ inventories, period, periods }: Props) {
                                 onChange={(e) => setSortBy(e.target.value as 'movement' | 'quantity' | 'ratio')}
                                 className="border border-gray-300 rounded-md px-3 py-2 bg-white flex-1"
                             >
-                                <option value="movement">Pergerakan</option>
-                                <option value="quantity">Stock Total</option>
-                                <option value="ratio">Rasio</option>
+                                <option value="movement">Movement</option>
+                                <option value="quantity">Total Stock</option>
+                                <option value="ratio">Ratio</option>
                             </select>
                             <button
                                 onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
                                 className="px-3 py-2 border border-gray-300 rounded-md hover:bg-gray-50"
-                                title={`Saat ini: ${sortOrder === 'asc' ? 'Terendah ke Tertinggi' : 'Tertinggi ke Terendah'}`}
+                                title={`Current: ${sortOrder === 'asc' ? 'Lowest to Highest' : 'Highest to Lowest'}`}
                             >
                                 {sortOrder === 'asc' ? '↑' : '↓'}
                             </button>
@@ -285,42 +285,42 @@ export default function SortedGlobal({ inventories, period, periods }: Props) {
                 {/* Summary Cards */}
                 <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 mb-6">
                     <div className="bg-white p-4 rounded-lg shadow">
-                        <h3 className="text-sm font-medium text-gray-600">Total Produk</h3>
+                        <h3 className="text-sm font-medium text-gray-600">Total Products</h3>
                         <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
                         {movementFilter !== 'all' && (
-                            <p className="text-xs text-gray-500">Tampil: {stats.filtered}</p>
+                            <p className="text-xs text-gray-500">Showing: {stats.filtered}</p>
                         )}
                     </div>
                     <div className="bg-red-50 p-4 rounded-lg">
-                        <h3 className="text-sm font-medium text-red-800">Tidak Bergerak</h3>
+                        <h3 className="text-sm font-medium text-red-800">No Movement</h3>
                         <p className="text-2xl font-bold text-red-900">{stats.noMovement}</p>
                         <p className="text-xs text-red-600">
                             {stats.total > 0 ? ((stats.noMovement / stats.total) * 100).toFixed(1) : 0}%
                         </p>
                     </div>
                     <div className="bg-yellow-50 p-4 rounded-lg">
-                        <h3 className="text-sm font-medium text-yellow-800">Pergerakan Rendah</h3>
+                        <h3 className="text-sm font-medium text-yellow-800">Low Movement</h3>
                         <p className="text-2xl font-bold text-yellow-900">{stats.lowMovement}</p>
                         <p className="text-xs text-yellow-600">
                             {stats.total > 0 ? ((stats.lowMovement / stats.total) * 100).toFixed(1) : 0}%
                         </p>
                     </div>
                     <div className="bg-blue-50 p-4 rounded-lg">
-                        <h3 className="text-sm font-medium text-blue-800">Pergerakan Sedang</h3>
+                        <h3 className="text-sm font-medium text-blue-800">Medium Movement</h3>
                         <p className="text-2xl font-bold text-blue-900">{stats.mediumMovement}</p>
                         <p className="text-xs text-blue-600">
                             {stats.total > 0 ? ((stats.mediumMovement / stats.total) * 100).toFixed(1) : 0}%
                         </p>
                     </div>
                     <div className="bg-green-50 p-4 rounded-lg">
-                        <h3 className="text-sm font-medium text-green-800">Pergerakan Tinggi</h3>
+                        <h3 className="text-sm font-medium text-green-800">High Movement</h3>
                         <p className="text-2xl font-bold text-green-900">{stats.highMovement}</p>
                         <p className="text-xs text-green-600">
                             {stats.total > 0 ? ((stats.highMovement / stats.total) * 100).toFixed(1) : 0}%
                         </p>
                     </div>
                     <div className="bg-purple-50 p-4 rounded-lg">
-                        <h3 className="text-sm font-medium text-purple-800">Rasio Rata-rata</h3>
+                        <h3 className="text-sm font-medium text-purple-800">Average Ratio</h3>
                         <p className="text-2xl font-bold text-purple-900">
                             {movementFilter === 'all' ? stats.avgRatio : stats.filteredAvgRatio}
                         </p>
@@ -334,12 +334,12 @@ export default function SortedGlobal({ inventories, period, periods }: Props) {
                         <div className="flex">
                             <div className="ml-3">
                                 <h3 className="text-sm font-medium text-orange-800">
-                                    Perhatian Diperlukan!
+                                    Attention Required!
                                 </h3>
                                 <div className="mt-2 text-sm text-orange-700">
                                     <p>
-                                        {stats.needAttention} produk memiliki pergerakan rendah atau tidak bergerak sama sekali. 
-                                        Pertimbangkan untuk mengurangi atau menghentikan pemesanan produk ini untuk periode mendatang.
+                                        {stats.needAttention} products have low or no movement at all. 
+                                        Consider reducing or stopping orders for these products in the upcoming period.
                                     </p>
                                 </div>
                             </div>
@@ -353,16 +353,16 @@ export default function SortedGlobal({ inventories, period, periods }: Props) {
                         <div className="flex">
                             <div className="ml-3">
                                 <h3 className="text-sm font-medium text-blue-800">
-                                    Filter Aktif: {movementFilter.replace('_', ' ').toUpperCase()}
+                                    Active Filter: {movementFilter.replace('_', ' ').toUpperCase()}
                                 </h3>
                                 <div className="mt-2 text-sm text-blue-700">
                                     <p>
-                                        Menampilkan {stats.filtered} dari {stats.total} produk. 
+                                        Showing {stats.filtered} of {stats.total} products. 
                                         <button 
                                             onClick={() => setMovementFilter('all')}
                                             className="ml-2 underline hover:no-underline"
                                         >
-                                            Tampilkan semua
+                                            Show all
                                         </button>
                                     </p>
                                 </div>
@@ -377,25 +377,25 @@ export default function SortedGlobal({ inventories, period, periods }: Props) {
                         <thead className="bg-gray-50">
                             <tr>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Produk
+                                    Product
                                 </th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
                                     onClick={() => setSortBy('quantity')}>
-                                    Stock Total {sortBy === 'quantity' && (sortOrder === 'asc' ? '↑' : '↓')}
+                                    Total Stock {sortBy === 'quantity' && (sortOrder === 'asc' ? '↑' : '↓')}
                                 </th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
                                     onClick={() => setSortBy('movement')}>
-                                    Pergerakan {sortBy === 'movement' && (sortOrder === 'asc' ? '↑' : '↓')}
+                                    Movement {sortBy === 'movement' && (sortOrder === 'asc' ? '↑' : '↓')}
                                 </th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Kategori
+                                    Category
                                 </th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
                                     onClick={() => setSortBy('ratio')}>
-                                    Rasio {sortBy === 'ratio' && (sortOrder === 'asc' ? '↑' : '↓')}
+                                    Ratio {sortBy === 'ratio' && (sortOrder === 'asc' ? '↑' : '↓')}
                                 </th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Rekomendasi
+                                    Recommendation
                                 </th>
                             </tr>
                         </thead>
@@ -418,10 +418,10 @@ export default function SortedGlobal({ inventories, period, periods }: Props) {
                                     <td className="px-6 py-4 whitespace-nowrap">
                                         <div>
                                             <div className="text-sm font-medium text-gray-900">
-                                                {inv.total_movement?.toLocaleString()} unit
+                                                {inv.total_movement?.toLocaleString()} units
                                             </div>
                                             <div className="text-sm text-gray-500">
-                                                {inv.transaction_count} transaksi
+                                                {inv.transaction_count} transactions
                                             </div>
                                         </div>
                                     </td>
@@ -450,8 +450,8 @@ export default function SortedGlobal({ inventories, period, periods }: Props) {
                 {filteredAndSortedInventories.length === 0 && (
                     <div className="text-center py-8 text-gray-500">
                         {movementFilter === 'all' 
-                            ? 'Tidak ada data inventory untuk periode ini.'
-                            : `Tidak ada produk dengan kategori ${movementFilter.replace('_', ' ')}.`
+                            ? 'No inventory data for this period.'
+                            : `No products with ${movementFilter.replace('_', ' ')} category.`
                         }
                     </div>
                 )}
