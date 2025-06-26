@@ -122,8 +122,19 @@ class StockTransactionController extends Controller
                 },
             ],
             'type'         => 'required|in:in,out,adjustment,transfer',
-            'quantity'     => 'required|integer|min:1',
-            'reference'    => 'nullable|string|max:255',
+            'quantity'     => [
+                'required',
+                'integer',
+                'min:1',
+                function ($attribute, $value, $fail) use ($request) {
+                    if ($request->type === 'out') {
+                        $inventory = Inventory::find($request->inventory_id);
+                        if ($inventory && $value > $inventory->quantity) {
+                            $fail("Quantity tidak boleh melebihi stock yang tersedia ({$inventory->quantity}).");
+                        }
+                    }
+                },
+            ],
             'description'  => 'nullable|string',
         ]);
         $validated['created_by'] = auth()->id();
@@ -168,8 +179,30 @@ class StockTransactionController extends Controller
                 },
             ],
             'type'         => 'required|in:in,out,adjustment,transfer',
-            'quantity'     => 'required|integer|min:1',
-            'reference'    => 'nullable|string|max:255',
+            'quantity'     => [
+                'required',
+                'integer',
+                'min:1',
+                function ($attribute, $value, $fail) use ($request, $id) {
+                    if ($request->type === 'out') {
+                        $currentTrx = StockTransaction::find($id);
+                        $inventory = Inventory::find($request->inventory_id);
+                        if ($inventory && $currentTrx) {
+                            // Calculate available stock considering the current transaction being updated
+                            $availableStock = $inventory->quantity;
+                            if ($currentTrx->type === 'out') {
+                                $availableStock += $currentTrx->quantity; // Add back the previous out quantity
+                            } elseif ($currentTrx->type === 'in') {
+                                $availableStock -= $currentTrx->quantity; // Remove the previous in quantity
+                            }
+                            
+                            if ($value > $availableStock) {
+                                $fail("Quantity tidak boleh melebihi stock yang tersedia ({$availableStock}).");
+                            }
+                        }
+                    }
+                },
+            ],
             'description'  => 'nullable|string',
         ]);
 

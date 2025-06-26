@@ -3,6 +3,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\DB;
 use Spatie\Activitylog\Traits\LogsActivity;
 use Spatie\Activitylog\LogOptions;
 
@@ -137,5 +138,167 @@ class Inventory extends Model
         })->orWhere(function ($q) {
             $q->whereNotNull('max_stock')->whereColumn('quantity', '>=', 'max_stock');
         });
+    }
+    
+    public static function getSortedGlobalWithMovement($period = 'month')
+    {
+        $dateRange = self::getDateRange($period);
+        
+        return static::select([
+                'inventories.product_id',
+                'inventories.warehouse_id',
+                DB::raw('SUM(inventories.quantity) as total_quantity'),
+                DB::raw('COALESCE(SUM(ABS(stock_transactions.quantity)), 0) as total_movement'),
+                DB::raw('COUNT(stock_transactions.id) as transaction_count'),
+                DB::raw('CASE 
+                    WHEN COALESCE(SUM(ABS(stock_transactions.quantity)), 0) = 0 THEN "no_movement"
+                    WHEN COALESCE(SUM(ABS(stock_transactions.quantity)), 0) < 20 THEN "low_movement"
+                    WHEN COALESCE(SUM(ABS(stock_transactions.quantity)), 0) < 100 THEN "medium_movement"
+                    ELSE "high_movement"
+                END as movement_category')
+            ])
+            ->leftJoin('stock_transactions', function($join) use ($dateRange) {
+                $join->on('inventories.id', '=', 'stock_transactions.inventory_id')
+                     ->whereBetween('stock_transactions.created_at', $dateRange)
+                     ->whereNull('stock_transactions.deleted_at');
+            })
+            ->groupBy('inventories.product_id', 'inventories.warehouse_id')
+            ->orderBy('total_movement', 'asc') // Sort by movement (least active first)
+            ->orderBy('total_quantity', 'desc')
+            ->with(['product', 'warehouse'])
+            ->get()
+            ->map(function($item) {
+                // Calculate movement ratio (movement per stock)
+                $item->movement_ratio = $item->total_quantity > 0 
+                    ? round($item->total_movement / $item->total_quantity, 2) 
+                    : 0;
+                    
+                // Add recommendation
+                $item->recommendation = self::getRecommendation($item);
+                
+                return $item;
+            });
+    }
+    
+    protected static function getDateRange($period)
+    {
+        $now = now();
+        
+        switch ($period) {
+            case 'week':
+                return [$now->startOfWeek()->toDateString(), $now->endOfWeek()->toDateString()];
+            case 'month':
+                return [$now->startOfMonth()->toDateString(), $now->endOfMonth()->toDateString()];
+            case 'year':
+                return [$now->startOfYear()->toDateString(), $now->endOfYear()->toDateString()];
+            default:
+                return [$now->startOfMonth()->toDateString(), $now->endOfMonth()->toDateString()];
+        }
+    }
+    
+    protected static function getRecommendation($item)
+    {
+        $totalMovement = $item->total_movement;
+        $totalStock = $item->total_quantity;
+        $movementRatio = $item->movement_ratio;
+        
+        // Jika tidak ada pergerakan sama sekali
+        if ($totalMovement == 0) {
+            return [
+                'status' => 'danger',
+                'text' => 'Tidak ada pergerakan - pertimbangkan untuk tidak menambah stock bulan depan',
+                'action' => 'stop_reorder'
+            ];
+        }
+        
+        // Untuk produk dengan pergerakan tinggi (>= 100 unit), fokus ke rasio
+        if ($totalMovement >= 100) {
+            if ($movementRatio >= 0.05) { // 5% atau lebih dari stock bergerak
+                return [
+                    'status' => 'success',
+                    'text' => 'Pergerakan tinggi dengan rasio baik - stock berputar optimal',
+                    'action' => 'maintain_or_increase'
+                ];
+            } else {
+                return [
+                    'status' => 'info',
+                    'text' => 'Pergerakan tinggi tapi rasio rendah - monitor trend, pertahankan level saat ini',
+                    'action' => 'maintain'
+                ];
+            }
+        }
+        
+        // Untuk produk dengan pergerakan sedang (20-99 unit)
+        if ($totalMovement >= 20) {
+            if ($movementRatio >= 0.1) { // 10% atau lebih
+                return [
+                    'status' => 'success',
+                    'text' => 'Pergerakan sedang dengan rasio baik - stock berputar efisien',
+                    'action' => 'maintain_or_increase'
+                ];
+            } else if ($movementRatio >= 0.02) { // 2-10%
+                return [
+                    'status' => 'info',
+                    'text' => 'Pergerakan sedang - pertahankan level stock',
+                    'action' => 'maintain'
+                ];
+            } else {
+                return [
+                    'status' => 'warning',
+                    'text' => 'Pergerakan sedang tapi rasio sangat rendah - terlalu banyak stock',
+                    'action' => 'reduce_reorder'
+                ];
+            }
+        }
+        
+        // Untuk produk dengan pergerakan rendah (1-19 unit)
+        if ($totalMovement > 0) {
+            if ($movementRatio >= 0.1) {
+                return [
+                    'status' => 'info',
+                    'text' => 'Pergerakan rendah tapi rasio baik - stock sesuai dengan demand',
+                    'action' => 'maintain'
+                ];
+            } else {
+                return [
+                    'status' => 'warning',
+                    'text' => 'Pergerakan rendah dengan rasio rendah - kurangi pesanan bulan depan',
+                    'action' => 'reduce_reorder'
+                ];
+            }
+        }
+        
+        // Fallback
+        return [
+            'status' => 'info',
+            'text' => 'Pergerakan normal - pertahankan level stock',
+            'action' => 'maintain'
+        ];
+    }
+    
+    /**
+     * Get movement statistics for dashboard
+     */
+    public static function getMovementStatistics($period = 'month')
+    {
+        $inventories = self::getSortedGlobalWithMovement($period);
+        
+        return [
+            'total_products' => $inventories->count(),
+            'no_movement' => $inventories->where('movement_category', 'no_movement')->count(),
+            'low_movement' => $inventories->where('movement_category', 'low_movement')->count(),
+            'medium_movement' => $inventories->where('movement_category', 'medium_movement')->count(),
+            'high_movement' => $inventories->where('movement_category', 'high_movement')->count(),
+            'avg_movement_ratio' => $inventories->avg('movement_ratio'),
+            'slow_movers' => $inventories->where('movement_category', 'no_movement')
+                                       ->orWhere('movement_category', 'low_movement')
+                                       ->count(),
+            'recommendations' => [
+                'stop_reorder' => $inventories->where('recommendation.action', 'stop_reorder')->count(),
+                'reduce_reorder' => $inventories->where('recommendation.action', 'reduce_reorder')->count(),
+                'maintain' => $inventories->where('recommendation.action', 'maintain')->count(),
+                'increase_if_needed' => $inventories->where('recommendation.action', 'increase_if_needed')->count(),
+            ]
+        ];
     }
 }

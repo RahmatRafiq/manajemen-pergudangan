@@ -9,13 +9,16 @@ import { BreadcrumbItem } from '@/types';
 import AppLayout from '@/layouts/app-layout';
 import CustomSelect from '@/components/select';
 import type { Role, User } from '@/types/UserRolePermission';
+import type { Warehouse } from '@/types/Warehouse';
 
 export default function UserForm({
     user,
     roles,
+    warehouses,
 }: {
     user?: User;
     roles: Role[];
+    warehouses: Warehouse[];
 }) {
     const isEdit = !!user;
 
@@ -25,6 +28,7 @@ export default function UserForm({
         password: '',
         password_confirmation: '',
         role_id: user?.role_id || null,
+        warehouse_ids: user?.warehouse_ids || [],
     });
 
 
@@ -47,7 +51,17 @@ export default function UserForm({
         label: r.name,
     }));
 
+    const warehouseOptions = warehouses.map((w) => ({
+        value: w.id,
+        label: `${w.name} (${w.reference})`,
+    }));
+
     const selectedRole = roleOptions.find((opt) => opt.value === Number(data.role_id)) || null;
+    const selectedWarehouses = warehouseOptions.filter((opt) => 
+        data.warehouse_ids.includes(opt.value)
+    );
+
+    const isUserRole = selectedRole?.label.toLowerCase() === 'user';
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -142,6 +156,29 @@ export default function UserForm({
                                 />
                                 <InputError message={errors.role_id} />
                             </div>
+
+                            {isUserRole && (
+                                <div>
+                                    <Label htmlFor="warehouse_ids">Warehouse Assignment</Label>
+                                    <CustomSelect
+                                        id="warehouse_ids"
+                                        isMulti={true}
+                                        options={warehouseOptions}
+                                        value={selectedWarehouses}
+                                        onChange={(selected) => {
+                                            const warehouseIds = Array.isArray(selected) 
+                                                ? selected.map((opt: { value: number; label: string }) => opt.value)
+                                                : [];
+                                            setData('warehouse_ids', warehouseIds);
+                                        }}
+                                        placeholder="Select warehouses..."
+                                    />
+                                    <InputError message={errors.warehouse_ids} />
+                                    <p className="text-sm text-muted-foreground mt-1">
+                                        Select one or more warehouses for this user
+                                    </p>
+                                </div>
+                            )}
 
                             <div className="flex items-center space-x-4">
                                 <Button disabled={processing}>

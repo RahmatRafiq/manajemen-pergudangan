@@ -10,16 +10,29 @@ class CategorySeeder extends Seeder
 {
     public function run()
     {
-        $faker = Faker::create();
-        $types = ['Raw Material', 'Finished Goods', 'Consumable'];
+        $categories = [
+            ['name' => 'Electronics', 'type' => 'Finished Goods', 'description' => 'Electronic devices and components'],
+            ['name' => 'Computer Hardware', 'type' => 'Finished Goods', 'description' => 'Computer parts and accessories'],
+            ['name' => 'Audio & Video', 'type' => 'Finished Goods', 'description' => 'Audio and video equipment'],
+            ['name' => 'Networking', 'type' => 'Finished Goods', 'description' => 'Network equipment and cables'],
+            ['name' => 'Storage Devices', 'type' => 'Finished Goods', 'description' => 'Data storage solutions'],
+            ['name' => 'Mobile Accessories', 'type' => 'Finished Goods', 'description' => 'Smartphone and tablet accessories'],
+            ['name' => 'Office Equipment', 'type' => 'Finished Goods', 'description' => 'Office machines and tools'],
+            ['name' => 'Furniture', 'type' => 'Finished Goods', 'description' => 'Office and workspace furniture'],
+            ['name' => 'Stationery', 'type' => 'Consumable', 'description' => 'Office supplies and stationery'],
+            ['name' => 'Consumables', 'type' => 'Consumable', 'description' => 'Consumable office items']
+        ];
 
-        // Buat 10 kategori
-        for ($i = 0; $i < 10; $i++) {
-            Category::create([
-                'name'        => ucfirst($faker->unique()->word) . ' Category',
-                'type'        => $faker->randomElement($types),
-                'description' => $faker->sentence(6),
-            ]);
+        foreach ($categories as $category) {
+            Category::firstOrCreate(
+                ['name' => $category['name']], 
+                [
+                    'type' => $category['type'],
+                    'description' => $category['description']
+                ]
+            );
         }
+
+        $this->command->info('CategorySeeder completed successfully');
     }
 }

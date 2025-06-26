@@ -83,6 +83,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::get('/inventory/sorted/warehouse/{warehouseId}/json', [\App\Http\Controllers\InventorySortController::class, 'jsonByWarehouse']);
     Route::get('/inventory/sorted/global/json', [\App\Http\Controllers\InventorySortController::class, 'jsonGlobal']);
+    Route::get('/inventory/movement/statistics', [\App\Http\Controllers\InventorySortController::class, 'getMovementStatistics']);
 
     Route::prefix('stock-test')->group(function () {
         Route::post('/low-stock', [StockAlertController::class, 'testLowStock'])->name('stock-test.low-stock');
