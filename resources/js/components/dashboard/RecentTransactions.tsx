@@ -1,6 +1,8 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Clock, User, Package } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Clock, User, Package, ArrowRight } from 'lucide-react';
+import { Link } from '@inertiajs/react';
 
 interface Transaction {
     id: number;
@@ -45,6 +47,7 @@ export default function RecentTransactions({ transactions }: RecentTransactionsP
         return new Date(dateString).toLocaleDateString('id-ID', {
             day: '2-digit',
             month: 'short',
+            year: 'numeric',
             hour: '2-digit',
             minute: '2-digit',
         });
@@ -53,10 +56,18 @@ export default function RecentTransactions({ transactions }: RecentTransactionsP
     return (
         <Card>
             <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                    <Clock className="h-5 w-5" />
-                    Recent Transactions
-                </CardTitle>
+                <div className="flex items-center justify-between">
+                    <CardTitle className="flex items-center gap-2">
+                        <Clock className="h-5 w-5" />
+                        Recent Transactions
+                    </CardTitle>
+                    <Link href="/stock-transaction">
+                        <Button variant="outline" size="sm">
+                            View All
+                            <ArrowRight className="h-4 w-4 ml-2" />
+                        </Button>
+                    </Link>
+                </div>
             </CardHeader>
             <CardContent>
                 <div className="space-y-4">
@@ -65,13 +76,14 @@ export default function RecentTransactions({ transactions }: RecentTransactionsP
                             No recent transactions
                         </div>
                     ) : (
-                        transactions.map((transaction) => (
+                        transactions.slice(0, 5).map((transaction) => (
                             <div
                                 key={transaction.id}
-                                className="flex items-center justify-between p-3 rounded-lg border"
+                                className="flex flex-col gap-3 p-3 rounded-lg border"
                             >
-                                <div className="flex-1">
-                                    <div className="flex items-center gap-2 mb-1">
+                                {/* Header Row */}
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-2">
                                         <Badge className={typeColors[transaction.type as keyof typeof typeColors]}>
                                             {typeLabels[transaction.type as keyof typeof typeLabels]}
                                         </Badge>
@@ -79,20 +91,6 @@ export default function RecentTransactions({ transactions }: RecentTransactionsP
                                             {transaction.reference}
                                         </span>
                                     </div>
-                                    
-                                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                        <Package className="h-4 w-4" />
-                                        <span>
-                                            {transaction.inventory.product.name} ({transaction.inventory.product.sku})
-                                        </span>
-                                    </div>
-                                    
-                                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                        <span>@ {transaction.inventory.warehouse.name}</span>
-                                    </div>
-                                </div>
-                                
-                                <div className="text-right">
                                     <div className={`text-lg font-semibold ${
                                         transaction.type === 'in' || transaction.type === 'adjustment'
                                             ? 'text-green-600' 
@@ -101,14 +99,25 @@ export default function RecentTransactions({ transactions }: RecentTransactionsP
                                         {transaction.type === 'out' ? '-' : '+'}
                                         {transaction.quantity}
                                     </div>
-                                    
-                                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                                        <User className="h-3 w-3" />
-                                        <span>{transaction.creator.name}</span>
-                                    </div>
-                                    
-                                    <div className="text-xs text-muted-foreground">
-                                        {formatDate(transaction.created_at)}
+                                </div>
+                                
+                                {/* Product Info */}
+                                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                    <Package className="h-4 w-4" />
+                                    <span>
+                                        {transaction.inventory.product.name} ({transaction.inventory.product.sku})
+                                    </span>
+                                </div>
+                                
+                                {/* Footer Row */}
+                                <div className="flex items-center justify-between text-xs text-muted-foreground">
+                                    <span>@ {transaction.inventory.warehouse.name}</span>
+                                    <div className="flex items-center gap-3">
+                                        <div className="flex items-center gap-1">
+                                            <User className="h-3 w-3" />
+                                            <span>{transaction.creator.name}</span>
+                                        </div>
+                                        <span>{formatDate(transaction.created_at)}</span>
                                     </div>
                                 </div>
                             </div>
