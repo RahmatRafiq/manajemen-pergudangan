@@ -22,6 +22,35 @@ class StockTransaction extends Model
 
     protected $dates = ['deleted_at'];
 
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::creating(function ($transaction) {
+            if (empty($transaction->reference)) {
+                $transaction->reference = static::generateReference($transaction->type);
+            }
+        });
+    }
+
+    public static function generateReference($type)
+    {
+        $prefix = match($type) {
+            'in' => 'SIN',
+            'out' => 'SOUT',
+            'adjustment' => 'SADJ',
+            'transfer' => 'STRF',
+            default => 'STK',
+        };
+
+        $today = now()->format('Ymd');
+        $count = static::whereDate('created_at', today())
+            ->where('type', $type)
+            ->count() + 1;
+
+        return sprintf('%s-%s-%04d', $prefix, $today, $count);
+    }
+
     public function inventory()
     {
         return $this->belongsTo(Inventory::class);

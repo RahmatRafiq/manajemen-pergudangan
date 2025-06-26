@@ -29,14 +29,18 @@ export default function StockTransactionForm({ transaction, inventories }: Props
 
     const inventoryOptions: Option[] = inventories.map((inv) => ({
         value: inv.id,
-        label: `${inv.product?.name ?? ''} (${inv.product?.sku ?? '-'}) @ ${inv.warehouse?.name ?? ''}`,
+        label: `${inv.product?.name ?? ''} (${inv.product?.sku ?? '-'}) @ ${inv.warehouse?.name ?? ''} - Stock: ${inv.quantity}`,
     }));
 
-    const { data, setData, post, put, processing, errors } = useForm({
+    const { data, setData, post, put, processing, errors } = useForm<{
+        inventory_id: string | number;
+        type: string;
+        quantity: number;
+        description: string;
+    }>({
         inventory_id: transaction?.inventory_id || '',
         type: transaction?.type || 'in',
         quantity: transaction?.quantity || 0,
-        reference: transaction?.reference || '',
         description: transaction?.description || '',
     });
 
@@ -107,7 +111,7 @@ export default function StockTransactionForm({ transaction, inventories }: Props
                                     placeholder="Select Type"
                                     onChange={(opt) => {
                                         if (opt && !Array.isArray(opt) && 'value' in opt) {
-                                            setData('type', (opt as Option).value);
+                                            setData('type', String((opt as Option).value));
                                         } else {
                                             setData('type', 'in');
                                         }
@@ -126,17 +130,11 @@ export default function StockTransactionForm({ transaction, inventories }: Props
                                     required
                                 />
                                 <InputError message={errors.quantity} />
-                            </div>
-                            {/* Reference */}
-                            <div>
-                                <Label htmlFor="reference">Reference</Label>
-                                <Input
-                                    id="reference"
-                                    type="text"
-                                    value={data.reference}
-                                    onChange={(e) => setData('reference', e.target.value)}
-                                />
-                                <InputError message={errors.reference} />
+                                {selectedInventory && data.type === 'out' && (
+                                    <p className="text-sm text-muted-foreground mt-1">
+                                        Current stock: {inventories.find(inv => inv.id === Number(data.inventory_id))?.quantity || 0}
+                                    </p>
+                                )}
                             </div>
                             {/* Description */}
                             <div>
