@@ -123,13 +123,13 @@ Route::middleware(['auth', 'role:admin'])->group(function () {
 // Test route untuk debugging middleware protection
 Route::middleware(['auth', 'role:admin'])->group(function () {
     Route::get('/test-admin-access', function () {
-        return \Inertia\Inertia::render('Dashboard');
+        return Inertia::render('Dashboard');
     })->name('test.admin');
 });
 
 Route::middleware(['auth', 'role:user'])->group(function () {
     Route::get('/test-user-access', function () {
-        return \Inertia\Inertia::render('Dashboard');
+        return Inertia::render('Dashboard');
     })->name('test.user');
 });
 
