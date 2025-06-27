@@ -35,6 +35,58 @@
     opacity: 1;
 }
 
+/* Dark mode styles for toastify */
+.dark .toastify {
+    background: linear-gradient(135deg, oklch(0.2 0 0), oklch(0.25 0 0));
+    color: oklch(0.985 0 0);
+    border: 1px solid oklch(0.3 0 0);
+}
+
+.dark .toastify.success {
+    background: linear-gradient(135deg, oklch(0.25 0.1 150), oklch(0.2 0.08 150));
+    border-color: oklch(0.35 0.12 150);
+}
+
+.dark .toastify.error {
+    background: linear-gradient(135deg, oklch(0.25 0.15 25), oklch(0.2 0.12 25));
+    border-color: oklch(0.35 0.17 25);
+}
+
+.dark .toastify.warning {
+    background: linear-gradient(135deg, oklch(0.25 0.12 65), oklch(0.2 0.1 65));
+    border-color: oklch(0.35 0.14 65);
+}
+
+.dark .toastify .toast-close {
+    color: oklch(0.985 0 0);
+}
+
+/* Additional dark mode styles */
+.dark .toastify:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
+}
+
+/* Ensure proper text contrast in dark mode */
+.dark .text-gray-500 { color: oklch(0.6 0 0); }
+.dark .text-gray-600 { color: oklch(0.55 0 0); }
+.dark .text-gray-700 { color: oklch(0.5 0 0); }
+.dark .text-gray-800 { color: oklch(0.45 0 0); }
+.dark .text-gray-900 { color: oklch(0.15 0 0); }
+
+/* Background colors for dark mode */
+.dark .bg-gray-50 { background-color: oklch(0.22 0 0); }
+.dark .bg-gray-100 { background-color: oklch(0.25 0 0); }
+.dark .bg-gray-200 { background-color: oklch(0.28 0 0); }
+
+/* Border colors for dark mode */
+.dark .border-gray-200 { border-color: oklch(0.28 0 0); }
+.dark .border-gray-300 { border-color: oklch(0.32 0 0); }
+
+/* Hover states */
+.dark .hover\:bg-gray-50:hover { background-color: oklch(0.22 0 0); }
+.dark .hover\:bg-gray-100:hover { background-color: oklch(0.25 0 0); }
+
 @source "../views";
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 
@@ -149,15 +201,15 @@
 .dark {
     --background: oklch(0.145 0 0);
     --foreground: oklch(0.985 0 0);
-    --card: oklch(0.145 0 0);
+    --card: oklch(0.18 0 0);
     --card-foreground: oklch(0.985 0 0);
-    --popover: oklch(0.145 0 0);
+    --popover: oklch(0.18 0 0);
     --popover-foreground: oklch(0.985 0 0);
     --primary: oklch(0.985 0 0);
     --primary-foreground: oklch(0.205 0 0);
     --secondary: oklch(0.269 0 0);
     --secondary-foreground: oklch(0.985 0 0);
-    --muted: oklch(0.269 0 0);
+    --muted: oklch(0.225 0 0);
     --muted-foreground: oklch(0.708 0 0);
     --accent: oklch(0.269 0 0);
     --accent-foreground: oklch(0.985 0 0);
