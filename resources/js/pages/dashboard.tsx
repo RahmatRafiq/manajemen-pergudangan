@@ -5,6 +5,8 @@ import RecentTransactions from '@/components/dashboard/RecentTransactions';
 import LowStockAlerts from '@/components/dashboard/LowStockAlerts';
 import TransactionChart from '@/components/dashboard/TransactionChart';
 import TopMovingProducts from '@/components/dashboard/TopMovingProducts';
+import { AdminOnly } from '@/components/protected-component';
+import { useAuth } from '@/hooks/use-auth';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -16,7 +18,9 @@ import {
     Activity,
     Filter,
     Eye,
-    ArrowRight
+    ArrowRight,
+    Settings,
+    Users
 } from 'lucide-react';
 
 
@@ -34,6 +38,8 @@ export default function Dashboard({
     available_warehouses,
     selected_warehouse_id,
 }: DashboardProps) {
+    const { getUserRoles } = useAuth();
+    
     const handleWarehouseFilter = (warehouseId: string) => {
         const params = warehouseId === 'all' ? {} : { warehouse_id: warehouseId };
         router.get('/dashboard', params, {
@@ -53,6 +59,8 @@ export default function Dashboard({
         ? available_warehouses.find(w => w.id === selected_warehouse_id)
         : null;
 
+    const userRoles = getUserRoles();
+
     return (
         <AppLayout>
             <Head title="Dashboard" />
@@ -67,6 +75,11 @@ export default function Dashboard({
                             Welcome back to your warehouse management dashboard
                             {selectedWarehouse && (
                                 <span className="font-medium"> - {selectedWarehouse.name}</span>
+                            )}
+                            {userRoles.length > 0 && (
+                                <span className="ml-2 text-xs px-2 py-1 bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-200 rounded-full">
+                                    {userRoles.join(', ')}
+                                </span>
                             )}
                         </p>
                     </div>
@@ -243,6 +256,46 @@ export default function Dashboard({
                         <RecentTransactions transactions={recent_transactions} />
                     </div>
                 </div>
+
+                {/* Admin-only Quick Actions */}
+                <AdminOnly>
+                    <Card className="border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-950/50">
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2 text-blue-900 dark:text-blue-100">
+                                <Settings className="h-5 w-5" />
+                                Admin Quick Actions
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                                <Link href="/users">
+                                    <Button variant="outline" size="sm" className="w-full">
+                                        <Users className="h-4 w-4 mr-2" />
+                                        Manage Users
+                                    </Button>
+                                </Link>
+                                <Link href="/category">
+                                    <Button variant="outline" size="sm" className="w-full">
+                                        <Package className="h-4 w-4 mr-2" />
+                                        Categories
+                                    </Button>
+                                </Link>
+                                <Link href="/product">
+                                    <Button variant="outline" size="sm" className="w-full">
+                                        <Package className="h-4 w-4 mr-2" />
+                                        Products
+                                    </Button>
+                                </Link>
+                                <Link href="/roles">
+                                    <Button variant="outline" size="sm" className="w-full">
+                                        <Settings className="h-4 w-4 mr-2" />
+                                        Roles & Permissions
+                                    </Button>
+                                </Link>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </AdminOnly>
             </div>
         </AppLayout>
     );

@@ -2,8 +2,9 @@ import { NavFooter } from '@/components/nav-footer';
 import { NavMain } from '@/components/nav-main';
 import { NavUser } from '@/components/nav-user';
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar';
-import { type NavItem } from '@/types';
-import { Link } from '@inertiajs/react';
+import { type NavItem, type SharedData } from '@/types';
+import { filterNavItems } from '@/utils/nav-filter';
+import { Link, usePage } from '@inertiajs/react';
 import { BookOpen, Folder, LayoutGrid, Users, Shield, Key, User, Package, Bell, TrendingDown } from 'lucide-react';
 import AppLogo from './app-logo';
 
@@ -27,21 +28,25 @@ const mainNavItems: NavItem[] = [
         title: 'Users Management',
         href: '',
         icon: Users,
+        adminOnly: true, // Only admin can access
         children: [
             {
                 title: 'Roles',
                 href: '/roles',
                 icon: Shield,
+                adminOnly: true,
             },
             {
                 title: 'Permissions',
                 href: '/permissions',
                 icon: Key,
+                adminOnly: true,
             },
             {
                 title: 'User',
                 href: '/users',
                 icon: User,
+                adminOnly: true,
             },
         ],
     },
@@ -49,6 +54,7 @@ const mainNavItems: NavItem[] = [
         title: 'Category Management',
         href: '/category',
         icon: Folder,
+        adminOnly: true, // Only admin can access
     },
     // {
     //     title: 'Warehouse Management',
@@ -59,6 +65,7 @@ const mainNavItems: NavItem[] = [
         title: 'Products Management',
         href: '/product',
         icon: Package,
+        adminOnly: true, // Only admin can access
     },
     {
         title: 'Inventory Management',
@@ -91,6 +98,9 @@ const footerNavItems: NavItem[] = [
 ];
 
 export function AppSidebar() {
+    const { auth } = usePage<SharedData>().props;
+    const filteredMainNavItems = filterNavItems(auth.user, mainNavItems);
+    
     return (
         <Sidebar collapsible="icon" variant="inset">
             <SidebarHeader>
@@ -106,7 +116,7 @@ export function AppSidebar() {
             </SidebarHeader>
 
             <SidebarContent>
-                <NavMain items={mainNavItems} />
+                <NavMain items={filteredMainNavItems} />
             </SidebarContent>
 
             <SidebarFooter>
