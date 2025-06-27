@@ -34,7 +34,7 @@ export default function LowStockAlerts({ items }: LowStockAlertsProps) {
         <Card>
             <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                    <AlertTriangle className="h-5 w-5 text-orange-600" />
+                    <AlertTriangle className="h-5 w-5 text-orange-600 dark:text-orange-400" />
                     Low Stock Alerts
                 </CardTitle>
             </CardHeader>
@@ -42,14 +42,14 @@ export default function LowStockAlerts({ items }: LowStockAlertsProps) {
                 <div className="space-y-4">
                     {items.length === 0 ? (
                         <div className="text-center py-6 text-muted-foreground">
-                            <Package className="h-12 w-12 mx-auto mb-2 text-green-500" />
+                            <Package className="h-12 w-12 mx-auto mb-2 text-green-500 dark:text-green-400" />
                             <p>All items are well stocked!</p>
                         </div>
                     ) : (
                         items.map((item, index) => (
                             <div
                                 key={index}
-                                className="p-3 rounded-lg border border-orange-200 bg-orange-50"
+                                className="p-3 rounded-lg border border-orange-200 bg-orange-50 dark:border-orange-800 dark:bg-orange-950/50"
                             >
                                 <div className="flex items-center justify-between mb-2">
                                     <div className="flex-1">
@@ -67,10 +67,10 @@ export default function LowStockAlerts({ items }: LowStockAlertsProps) {
                                         </div>
                                         <div className={`text-xs px-2 py-1 rounded ${
                                             item.percentage <= 25 
-                                                ? 'bg-red-100 text-red-800'
+                                                ? 'bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-200'
                                                 : item.percentage <= 50
-                                                ? 'bg-orange-100 text-orange-800'
-                                                : 'bg-yellow-100 text-yellow-800'
+                                                ? 'bg-orange-100 text-orange-800 dark:bg-orange-900/50 dark:text-orange-200'
+                                                : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-200'
                                         }`}>
                                             {getUrgencyLevel(item.percentage)}
                                         </div>

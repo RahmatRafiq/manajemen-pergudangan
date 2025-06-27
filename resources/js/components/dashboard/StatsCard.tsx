@@ -18,11 +18,11 @@ export default function StatsCard({ title, value, change, icon, alert }: StatsCa
         
         switch (change.type) {
             case 'increase':
-                return <TrendingUp className="h-4 w-4 text-green-600" />;
+                return <TrendingUp className="h-4 w-4 text-green-600 dark:text-green-400" />;
             case 'decrease':
-                return <TrendingDown className="h-4 w-4 text-red-600" />;
+                return <TrendingDown className="h-4 w-4 text-red-600 dark:text-red-400" />;
             default:
-                return <Minus className="h-4 w-4 text-gray-600" />;
+                return <Minus className="h-4 w-4 text-gray-600 dark:text-gray-400" />;
         }
     };
 
@@ -31,22 +31,22 @@ export default function StatsCard({ title, value, change, icon, alert }: StatsCa
         
         switch (change.type) {
             case 'increase':
-                return 'text-green-600';
+                return 'text-green-600 dark:text-green-400';
             case 'decrease':
-                return 'text-red-600';
+                return 'text-red-600 dark:text-red-400';
             default:
-                return 'text-gray-600';
+                return 'text-gray-600 dark:text-gray-400';
         }
     };
 
     return (
-        <Card className={alert ? 'border-orange-200 bg-orange-50' : ''}>
+        <Card className={alert ? 'border-orange-200 bg-orange-50 dark:border-orange-800 dark:bg-orange-950/50' : ''}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">
                     {title}
                 </CardTitle>
                 {alert ? (
-                    <AlertTriangle className="h-4 w-4 text-orange-600" />
+                    <AlertTriangle className="h-4 w-4 text-orange-600 dark:text-orange-400" />
                 ) : (
                     icon
                 )}

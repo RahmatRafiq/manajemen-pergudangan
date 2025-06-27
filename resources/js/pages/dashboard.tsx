@@ -19,90 +19,7 @@ import {
     ArrowRight
 } from 'lucide-react';
 
-interface Transaction {
-    id: number;
-    type: string;
-    quantity: number;
-    reference: string;
-    created_at: string;
-    inventory: {
-        product: { name: string; sku: string };
-        warehouse: { name: string };
-    };
-    creator: { name: string };
-}
 
-interface TopMovingProduct {
-    product_name: string;
-    product_sku: string;
-    warehouse_name: string;
-    total_movement: number;
-    transaction_count: number;
-    current_stock: number;
-}
-
-interface LowStockItem {
-    product_name: string;
-    product_sku: string;
-    warehouse_name: string;
-    current_stock: number;
-    min_stock: number;
-    percentage: number;
-}
-
-interface MovementAnalysisItem {
-    product_name: string;
-    warehouse_name: string;
-    total_quantity: number;
-    total_movement: number;
-    movement_ratio: number;
-    movement_category: string;
-    recommendation: {
-        status: string;
-        text: string;
-        action: string;
-    };
-}
-
-interface WarehousePerformanceItem {
-    id: number;
-    name: string;
-    reference: string;
-    users_count: number;
-    inventory_count: number;
-    total_stock: number;
-    recent_activity: number;
-}
-
-interface DailyTransactionItem {
-    date: string;
-    type: string;
-    count: number;
-    quantity: string;
-}
-
-interface DashboardProps {
-    stats: {
-        total_products: number;
-        total_warehouses: number;
-        total_inventory_value: number;
-        total_users: number;
-        stock_alerts: number;
-        low_stock_items: number;
-        overstock_items: number;
-    };
-    transaction_stats: Record<string, { count: number; total_quantity: number }>;
-    daily_transactions: Record<string, DailyTransactionItem[]>;
-    recent_transactions: Transaction[];
-    top_moving_products: TopMovingProduct[];
-    low_stock_details: LowStockItem[];
-    movement_analysis: MovementAnalysisItem[];
-    warehouse_performance: WarehousePerformanceItem[];
-    is_global_access: boolean;
-    available_warehouses: { id: number; name: string }[];
-    selected_warehouse_id: number | null;
-    user_role: string;
-}
 
 export default function Dashboard({
     stats,
@@ -188,33 +105,33 @@ export default function Dashboard({
                     <StatsCard
                         title="Total Products"
                         value={stats.total_products.toLocaleString()}
-                        icon={<Package className="h-4 w-4 text-blue-600" />}
+                        icon={<Package className="h-4 w-4 text-blue-600 dark:text-blue-400" />}
                     />
                     <StatsCard
                         title="Warehouses"
                         value={stats.total_warehouses.toLocaleString()}
-                        icon={<Warehouse className="h-4 w-4 text-green-600" />}
+                        icon={<Warehouse className="h-4 w-4 text-green-600 dark:text-green-400" />}
                     />
                     <StatsCard
                         title="Total Inventory"
                         value={`${stats.total_inventory_value.toLocaleString()} units`}
-                        icon={<Package className="h-4 w-4 text-purple-600" />}
+                        icon={<Package className="h-4 w-4 text-purple-600 dark:text-purple-400" />}
                     />
                     <StatsCard
                         title="Stock Alerts"
                         value={stats.stock_alerts.toLocaleString()}
-                        icon={<AlertTriangle className="h-4 w-4 text-orange-600" />}
+                        icon={<AlertTriangle className="h-4 w-4 text-orange-600 dark:text-orange-400" />}
                         alert={stats.stock_alerts > 0}
                     />
                 </div>
                 {stats.stock_alerts > 0 && (
-                    <Card className="border-orange-200 bg-orange-50">
+                    <Card className="border-orange-200 bg-orange-50 dark:border-orange-800 dark:bg-orange-950/50">
                         <CardContent className="flex items-center justify-between p-4">
                             <div className="flex items-center gap-3">
-                                <AlertTriangle className="h-5 w-5 text-orange-600" />
+                                <AlertTriangle className="h-5 w-5 text-orange-600 dark:text-orange-400" />
                                 <div>
-                                    <div className="font-medium">Stock Attention Required</div>
-                                    <div className="text-sm text-muted-foreground">
+                                    <div className="font-medium text-orange-900 dark:text-orange-100">Stock Attention Required</div>
+                                    <div className="text-sm text-orange-700 dark:text-orange-300">
                                         {stats.low_stock_items} items are running low, {stats.overstock_items} items are overstocked
                                     </div>
                                 </div>
@@ -254,7 +171,7 @@ export default function Dashboard({
                                 <CardContent>
                                     <div className="space-y-3">
                                         {movement_analysis.slice(0, 5).map((item, index) => (
-                                            <div key={index} className="flex items-center justify-between p-3 rounded-lg border">
+                                            <div key={index} className="flex items-center justify-between p-3 rounded-lg border border-border">
                                                 <div>
                                                     <div className="font-medium text-sm">
                                                         {item.product_name}
@@ -263,13 +180,12 @@ export default function Dashboard({
                                                         {item.warehouse_name} • Ratio: {item.movement_ratio}
                                                     </div>
                                                 </div>
-                                                <div className="text-right">
-                                                    <div className={`text-xs px-2 py-1 rounded ${
-                                                        item.recommendation.status === 'danger' ? 'bg-red-100 text-red-800' :
-                                                        item.recommendation.status === 'warning' ? 'bg-yellow-100 text-yellow-800' :
-                                                        item.recommendation.status === 'success' ? 'bg-green-100 text-green-800' :
-                                                        'bg-blue-100 text-blue-800'
-                                                    }`}>
+                                                <div className="text-right">                                                <div className={`text-xs px-2 py-1 rounded ${
+                                                    item.recommendation.status === 'danger' ? 'bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-200' :
+                                                    item.recommendation.status === 'warning' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-200' :
+                                                    item.recommendation.status === 'success' ? 'bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-200' :
+                                                    'bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-200'
+                                                }`}>
                                                         {item.movement_category.replace('_', ' ').toUpperCase()}
                                                     </div>
                                                 </div>
@@ -290,7 +206,7 @@ export default function Dashboard({
                                 <CardContent>
                                     <div className="grid gap-4 md:grid-cols-2">
                                         {warehouse_performance.map((warehouse) => (
-                                            <div key={warehouse.id} className="p-4 rounded-lg border">
+                                            <div key={warehouse.id} className="p-4 rounded-lg border border-border">
                                                 <div className="flex items-center justify-between mb-2">
                                                     <div className="font-medium">{warehouse.name}</div>
                                                     <div className="text-xs text-muted-foreground">
@@ -308,7 +224,7 @@ export default function Dashboard({
                                                     </div>
                                                     <div>
                                                         <div className="text-muted-foreground">Total Stock</div>
-                                                        <div className="font-medium">{warehouse.total_stock}</div>
+                                                        <div className="font-medium">{warehouse.total_stock.toLocaleString()}</div>
                                                     </div>
                                                     <div>
                                                         <div className="text-muted-foreground">Activity</div>
