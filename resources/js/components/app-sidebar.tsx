@@ -5,19 +5,33 @@ import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, Sid
 import { type NavItem, type SharedData } from '@/types';
 import { filterNavItems } from '@/utils/nav-filter';
 import { Link, usePage } from '@inertiajs/react';
-import { BookOpen, Folder, LayoutGrid, Users, Shield, Key, User, Package, Bell, TrendingDown } from 'lucide-react';
+import { 
+    Shield, 
+    Key, 
+    Users, 
+    Home,
+    AlertTriangle,
+    UserCog,
+    FolderOpen,
+    ShoppingCart,
+    Warehouse,
+    BarChart3,
+    ArrowRightLeft,
+    Github,
+    FileText
+} from 'lucide-react';
 import AppLogo from './app-logo';
 
 const mainNavItems: NavItem[] = [
     {
         title: 'Dashboard',
         href: '/dashboard',
-        icon: LayoutGrid,
+        icon: Home,
     },
     {
-        title: 'Stock Alerts',
+        title: 'Inventory Alerts',
         href: '/stock-alerts',
-        icon: Bell,
+        icon: AlertTriangle,
     },
     // {
     //     title: 'Log Activity',
@@ -27,7 +41,7 @@ const mainNavItems: NavItem[] = [
     {
         title: 'Users Management',
         href: '',
-        icon: Users,
+        icon: UserCog,
         adminOnly: true, // Only admin can access
         children: [
             {
@@ -45,7 +59,7 @@ const mainNavItems: NavItem[] = [
             {
                 title: 'User',
                 href: '/users',
-                icon: User,
+                icon: Users,
                 adminOnly: true,
             },
         ],
@@ -53,7 +67,7 @@ const mainNavItems: NavItem[] = [
     {
         title: 'Category Management',
         href: '/category',
-        icon: Folder,
+        icon: FolderOpen,
         adminOnly: true, // Only admin can access
     },
     // {
@@ -64,23 +78,23 @@ const mainNavItems: NavItem[] = [
     {
         title: 'Products Management',
         href: '/product',
-        icon: Package,
+        icon: ShoppingCart,
         adminOnly: true, // Only admin can access
     },
     {
         title: 'Inventory Management',
         href: '/inventory',
-        icon: Folder,
+        icon: Warehouse,
     },
     {
-        title: 'Analisis Pergerakan',
+        title: 'Movement Analysis',
         href: '/inventory/sorted/global',
-        icon: TrendingDown,
+        icon: BarChart3,
     },
     {
-        title: 'Stock Transactions',
+        title: 'Inventory Transactions',
         href: '/stock-transaction',
-        icon: BookOpen,
+        icon: ArrowRightLeft,
     },
 ];
 
@@ -88,12 +102,12 @@ const footerNavItems: NavItem[] = [
     {
         title: 'Repository',
         href: 'https://github.com/laravel/react-starter-kit',
-        icon: Folder,
+        icon: Github,
     },
     {
         title: 'Documentation',
         href: 'https://laravel.com/docs/starter-kits',
-        icon: BookOpen,
+        icon: FileText,
     },
 ];
 
