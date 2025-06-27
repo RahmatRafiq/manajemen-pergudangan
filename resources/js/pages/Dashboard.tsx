@@ -10,11 +10,11 @@ import { useAuth } from '@/hooks/use-auth';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { 
-    Package, 
-    Warehouse, 
-    AlertTriangle, 
-    TrendingUp, 
+import {
+    Package,
+    Warehouse,
+    AlertTriangle,
+    TrendingUp,
     Activity,
     Filter,
     Eye,
@@ -39,7 +39,7 @@ export default function Dashboard({
     selected_warehouse_id,
 }: DashboardProps) {
     const { getUserRoles } = useAuth();
-    
+
     const handleWarehouseFilter = (warehouseId: string) => {
         const params = warehouseId === 'all' ? {} : { warehouse_id: warehouseId };
         router.get('/dashboard', params, {
@@ -55,7 +55,7 @@ export default function Dashboard({
         return 'Good Evening';
     };
 
-    const selectedWarehouse = selected_warehouse_id 
+    const selectedWarehouse = selected_warehouse_id
         ? available_warehouses.find(w => w.id === selected_warehouse_id)
         : null;
 
@@ -83,7 +83,7 @@ export default function Dashboard({
                             )}
                         </p>
                     </div>
-                    
+
                     <div className="flex items-center gap-3">
                         {available_warehouses.length > 1 && (
                             <div className="flex items-center gap-2">
@@ -114,6 +114,44 @@ export default function Dashboard({
                         </Link>
                     </div>
                 </div>
+                <AdminOnly>
+                    <Card className="border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-950/50">
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2 text-blue-900 dark:text-blue-100">
+                                <Settings className="h-5 w-5" />
+                                Admin Quick Actions
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                                <Link href="/users">
+                                    <Button variant="outline" size="sm" className="w-full">
+                                        <Users className="h-4 w-4 mr-2" />
+                                        Manage Users
+                                    </Button>
+                                </Link>
+                                <Link href="/category">
+                                    <Button variant="outline" size="sm" className="w-full">
+                                        <Package className="h-4 w-4 mr-2" />
+                                        Categories
+                                    </Button>
+                                </Link>
+                                <Link href="/product">
+                                    <Button variant="outline" size="sm" className="w-full">
+                                        <Package className="h-4 w-4 mr-2" />
+                                        Products
+                                    </Button>
+                                </Link>
+                                <Link href="/roles">
+                                    <Button variant="outline" size="sm" className="w-full">
+                                        <Settings className="h-4 w-4 mr-2" />
+                                        Roles & Permissions
+                                    </Button>
+                                </Link>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </AdminOnly>
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                     <StatsCard
                         title="Total Products"
@@ -160,7 +198,7 @@ export default function Dashboard({
                 )}
                 <div className="grid gap-6 lg:grid-cols-3">
                     <div className="lg:col-span-2 space-y-6">
-                        <TransactionChart 
+                        <TransactionChart
                             dailyData={daily_transactions}
                             stats={transaction_stats}
                         />
@@ -193,14 +231,13 @@ export default function Dashboard({
                                                         {item.warehouse_name} • Ratio: {item.movement_ratio}
                                                     </div>
                                                 </div>
-                                                <div className="text-right">                                                <div className={`text-xs px-2 py-1 rounded ${
-                                                    item.recommendation.status === 'danger' ? 'bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-200' :
-                                                    item.recommendation.status === 'warning' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-200' :
-                                                    item.recommendation.status === 'success' ? 'bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-200' :
-                                                    'bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-200'
-                                                }`}>
-                                                        {item.movement_category.replace('_', ' ').toUpperCase()}
-                                                    </div>
+                                                <div className="text-right">                                                <div className={`text-xs px-2 py-1 rounded ${item.recommendation.status === 'danger' ? 'bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-200' :
+                                                        item.recommendation.status === 'warning' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-200' :
+                                                            item.recommendation.status === 'success' ? 'bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-200' :
+                                                                'bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-200'
+                                                    }`}>
+                                                    {item.movement_category.replace('_', ' ').toUpperCase()}
+                                                </div>
                                                 </div>
                                             </div>
                                         ))}
@@ -258,44 +295,7 @@ export default function Dashboard({
                 </div>
 
                 {/* Admin-only Quick Actions */}
-                <AdminOnly>
-                    <Card className="border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-950/50">
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2 text-blue-900 dark:text-blue-100">
-                                <Settings className="h-5 w-5" />
-                                Admin Quick Actions
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                                <Link href="/users">
-                                    <Button variant="outline" size="sm" className="w-full">
-                                        <Users className="h-4 w-4 mr-2" />
-                                        Manage Users
-                                    </Button>
-                                </Link>
-                                <Link href="/category">
-                                    <Button variant="outline" size="sm" className="w-full">
-                                        <Package className="h-4 w-4 mr-2" />
-                                        Categories
-                                    </Button>
-                                </Link>
-                                <Link href="/product">
-                                    <Button variant="outline" size="sm" className="w-full">
-                                        <Package className="h-4 w-4 mr-2" />
-                                        Products
-                                    </Button>
-                                </Link>
-                                <Link href="/roles">
-                                    <Button variant="outline" size="sm" className="w-full">
-                                        <Settings className="h-4 w-4 mr-2" />
-                                        Roles & Permissions
-                                    </Button>
-                                </Link>
-                            </div>
-                        </CardContent>
-                    </Card>
-                </AdminOnly>
+
             </div>
         </AppLayout>
     );
