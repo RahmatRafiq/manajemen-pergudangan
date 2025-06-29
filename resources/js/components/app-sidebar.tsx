@@ -17,8 +17,7 @@ import {
     Warehouse,
     BarChart3,
     ArrowRightLeft,
-    Github,
-    FileText
+ 
 } from 'lucide-react';
 import AppLogo from './app-logo';
 
@@ -99,16 +98,7 @@ const mainNavItems: NavItem[] = [
 ];
 
 const footerNavItems: NavItem[] = [
-    {
-        title: 'Repository',
-        href: 'https://github.com/laravel/react-starter-kit',
-        icon: Github,
-    },
-    {
-        title: 'Documentation',
-        href: 'https://laravel.com/docs/starter-kits',
-        icon: FileText,
-    },
+  
 ];
 
 export function AppSidebar() {
