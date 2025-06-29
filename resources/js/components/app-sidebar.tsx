@@ -84,6 +84,7 @@ const mainNavItems: NavItem[] = [
         title: 'Inventory Management',
         href: '/inventory',
         icon: Warehouse,
+        adminOnly: true,
     },
     {
         title: 'Movement Analysis',
