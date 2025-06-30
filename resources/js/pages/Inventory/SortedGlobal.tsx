@@ -39,13 +39,25 @@ type Props = {
 export default function SortedGlobal({ inventories, period, periods }: Props) {
     const [movementFilter, setMovementFilter] = useState<string>('all');
     const [sortBy, setSortBy] = useState<'movement' | 'quantity' | 'ratio'>('movement');
-    const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+    const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc'); // Default to desc for showing highest first
 
     const handlePeriodChange = (newPeriod: string) => {
         router.get('/inventory/sorted/global', { period: newPeriod }, {
             preserveState: true,
             preserveScroll: true,
         });
+    };
+
+    // Handle sorting by column header click
+    const handleSort = (column: 'movement' | 'quantity' | 'ratio') => {
+        if (sortBy === column) {
+            // Toggle sort order if same column
+            setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+        } else {
+            // Set new column and default to desc (highest first)
+            setSortBy(column);
+            setSortOrder('desc');
+        }
     };
 
     // Filter dan sort data secara client-side
@@ -267,16 +279,16 @@ export default function SortedGlobal({ inventories, period, periods }: Props) {
                                 onChange={(e) => setSortBy(e.target.value as 'movement' | 'quantity' | 'ratio')}
                                 className="border border-input rounded-md px-3 py-2 bg-background text-foreground flex-1 focus:ring-2 focus:ring-ring focus:border-transparent"
                             >
-                                <option value="movement">Movement</option>
+                                <option value="movement">Total Movement</option>
                                 <option value="quantity">Total Stock</option>
-                                <option value="ratio">Ratio</option>
+                                <option value="ratio">Movement Ratio</option>
                             </select>
                             <button
                                 onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
                                 className="px-3 py-2 border border-input rounded-md hover:bg-accent hover:text-accent-foreground"
-                                title={`Current: ${sortOrder === 'asc' ? 'Lowest to Highest' : 'Highest to Lowest'}`}
+                                title={`Current: ${sortOrder === 'desc' ? 'Highest to Lowest' : 'Lowest to Highest'}`}
                             >
-                                {sortOrder === 'asc' ? '↑' : '↓'}
+                                {sortOrder === 'desc' ? '↓' : '↑'}
                             </button>
                         </div>
                     </div>
@@ -380,19 +392,19 @@ export default function SortedGlobal({ inventories, period, periods }: Props) {
                                     Product
                                 </th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-muted/80"
-                                    onClick={() => setSortBy('quantity')}>
-                                    Total Stock {sortBy === 'quantity' && (sortOrder === 'asc' ? '↑' : '↓')}
+                                    onClick={() => handleSort('quantity')}>
+                                    Total Stock {sortBy === 'quantity' && (sortOrder === 'desc' ? '↓' : '↑')}
                                 </th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-muted/80"
-                                    onClick={() => setSortBy('movement')}>
-                                    Movement {sortBy === 'movement' && (sortOrder === 'asc' ? '↑' : '↓')}
+                                    onClick={() => handleSort('movement')}>
+                                    Movement {sortBy === 'movement' && (sortOrder === 'desc' ? '↓' : '↑')}
                                 </th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                                     Category
                                 </th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-muted/80"
-                                    onClick={() => setSortBy('ratio')}>
-                                    Ratio {sortBy === 'ratio' && (sortOrder === 'asc' ? '↑' : '↓')}
+                                    onClick={() => handleSort('ratio')}>
+                                    Ratio {sortBy === 'ratio' && (sortOrder === 'desc' ? '↓' : '↑')}
                                 </th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                                     Recommendation

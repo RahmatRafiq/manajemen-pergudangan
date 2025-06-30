@@ -239,7 +239,7 @@ class Inventory extends Model
                     'movement_ratio' => $movementRatio
                 ])
             ];
-        })->sortBy('total_movement')->values();
+        })->sortByDesc('total_movement')->values(); // Sort by highest movement first by default
         
         return $globalData;
     }
