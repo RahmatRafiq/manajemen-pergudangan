@@ -19,7 +19,8 @@ class InventorySortController extends Controller
     public function global(Request $request)
     {
         $period = $request->input('period', 'month'); // default month
-        $inventories = Inventory::getSortedGlobalWithMovement($period);
+        // Use the improved method that aggregates by product across all warehouses
+        $inventories = Inventory::getSortedGlobalWithMovementV2($period);
         
         return inertia('Inventory/SortedGlobal', [
             'inventories' => $inventories,
@@ -42,7 +43,8 @@ class InventorySortController extends Controller
         $period = $request->input('period', 'month');
         $movementFilter = $request->input('movement_filter'); // no_movement, low_movement, etc.
         
-        $inventories = Inventory::getSortedGlobalWithMovement($period);
+        // Use the improved method that aggregates by product across all warehouses
+        $inventories = Inventory::getSortedGlobalWithMovementV2($period);
         
         // Apply movement filter if specified
         if ($movementFilter) {

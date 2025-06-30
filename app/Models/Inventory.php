@@ -147,7 +147,7 @@ class Inventory extends Model
         return static::select([
                 'inventories.product_id',
                 'inventories.warehouse_id',
-                DB::raw('SUM(inventories.quantity) as total_quantity'),
+                'inventories.quantity as total_quantity', // Fix: Remove SUM, use direct quantity
                 DB::raw('COALESCE(SUM(ABS(stock_transactions.quantity)), 0) as total_movement'),
                 DB::raw('COUNT(stock_transactions.id) as transaction_count'),
                 DB::raw('CASE 
@@ -162,7 +162,8 @@ class Inventory extends Model
                      ->whereBetween('stock_transactions.created_at', $dateRange)
                      ->whereNull('stock_transactions.deleted_at');
             })
-            ->groupBy('inventories.product_id', 'inventories.warehouse_id')
+            ->whereNull('inventories.deleted_at') // Add: Ensure only active inventory records
+            ->groupBy('inventories.id', 'inventories.product_id', 'inventories.warehouse_id', 'inventories.quantity') // Fix: Group by inventory.id and quantity
             ->orderBy('total_movement', 'asc') // Sort by movement (least active first)
             ->orderBy('total_quantity', 'desc')
             ->with(['product', 'warehouse'])
@@ -178,6 +179,69 @@ class Inventory extends Model
                 
                 return $item;
             });
+    }
+    
+    public static function getSortedGlobalWithMovementV2($period = 'month')
+    {
+        $dateRange = self::getDateRange($period);
+        
+        // Get per-warehouse data first
+        $perWarehouseData = static::select([
+                'inventories.id',
+                'inventories.product_id',
+                'inventories.warehouse_id',
+                'inventories.quantity',
+                DB::raw('COALESCE(SUM(ABS(stock_transactions.quantity)), 0) as warehouse_movement'),
+                DB::raw('COUNT(stock_transactions.id) as warehouse_transaction_count')
+            ])
+            ->leftJoin('stock_transactions', function($join) use ($dateRange) {
+                $join->on('inventories.id', '=', 'stock_transactions.inventory_id')
+                     ->whereBetween('stock_transactions.created_at', $dateRange)
+                     ->whereNull('stock_transactions.deleted_at');
+            })
+            ->whereNull('inventories.deleted_at')
+            ->groupBy('inventories.id', 'inventories.product_id', 'inventories.warehouse_id', 'inventories.quantity')
+            ->with(['product', 'warehouse'])
+            ->get();
+            
+        // Group by product and sum across warehouses
+        $globalData = $perWarehouseData->groupBy('product_id')->map(function($productInventories, $productId) {
+            $totalQuantity = $productInventories->sum('quantity');
+            $totalMovement = $productInventories->sum('warehouse_movement');
+            $totalTransactions = $productInventories->sum('warehouse_transaction_count');
+            $product = $productInventories->first()->product;
+            
+            // Determine movement category
+            $movementCategory = 'no_movement';
+            if ($totalMovement >= 100) {
+                $movementCategory = 'high_movement';
+            } elseif ($totalMovement >= 20) {
+                $movementCategory = 'medium_movement';
+            } elseif ($totalMovement > 0) {
+                $movementCategory = 'low_movement';
+            }
+            
+            $movementRatio = $totalQuantity > 0 ? round($totalMovement / $totalQuantity, 2) : 0;
+            
+            return (object) [
+                'product_id' => $productId,
+                'total_quantity' => $totalQuantity,
+                'total_movement' => $totalMovement,
+                'transaction_count' => $totalTransactions,
+                'movement_category' => $movementCategory,
+                'movement_ratio' => $movementRatio,
+                'product' => $product,
+                'warehouses' => $productInventories->pluck('warehouse')->unique(),
+                'warehouse_count' => $productInventories->count(),
+                'recommendation' => self::getRecommendation((object)[
+                    'total_movement' => $totalMovement,
+                    'total_quantity' => $totalQuantity,
+                    'movement_ratio' => $movementRatio
+                ])
+            ];
+        })->sortBy('total_movement')->values();
+        
+        return $globalData;
     }
     
     protected static function getDateRange($period)
@@ -281,7 +345,7 @@ class Inventory extends Model
      */
     public static function getMovementStatistics($period = 'month')
     {
-        $inventories = self::getSortedGlobalWithMovement($period);
+        $inventories = self::getSortedGlobalWithMovementV2($period);
         
         return [
             'total_products' => $inventories->count(),
@@ -290,9 +354,7 @@ class Inventory extends Model
             'medium_movement' => $inventories->where('movement_category', 'medium_movement')->count(),
             'high_movement' => $inventories->where('movement_category', 'high_movement')->count(),
             'avg_movement_ratio' => $inventories->avg('movement_ratio'),
-            'slow_movers' => $inventories->where('movement_category', 'no_movement')
-                                       ->orWhere('movement_category', 'low_movement')
-                                       ->count(),
+            'slow_movers' => $inventories->whereIn('movement_category', ['no_movement', 'low_movement'])->count(),
             'recommendations' => [
                 'stop_reorder' => $inventories->where('recommendation.action', 'stop_reorder')->count(),
                 'reduce_reorder' => $inventories->where('recommendation.action', 'reduce_reorder')->count(),
