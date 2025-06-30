@@ -15,7 +15,6 @@ class InventoryController extends Controller
         $filter = $request->query('filter', 'active');
         $user = auth()->user();
 
-        // Admin dapat melihat semua inventory, user hanya yang terkait warehouse-nya
         if ($user->hasRole('admin')) {
             $inventories = match ($filter) {
                 'trashed' => Inventory::onlyTrashed()->with(['product', 'warehouse'])->get(),
@@ -45,7 +44,6 @@ class InventoryController extends Controller
         $search = $request->input('search.value', '');
         $filter = $request->input('filter', 'active');
 
-        // Admin dapat melihat semua inventory, user hanya yang terkait warehouse-nya
         if ($user->hasRole('admin')) {
             $query = match ($filter) {
                 'trashed' => Inventory::onlyTrashed()->with(['product', 'warehouse']),
@@ -103,11 +101,14 @@ class InventoryController extends Controller
 
         if ($user->hasRole('admin')) {
             $warehouses = Warehouse::all();
-            $usedProductIds = Inventory::pluck('product_id')->unique();
+            $usedProductIds = Inventory::whereNull('deleted_at')->pluck('product_id')->unique();
             $products = Product::whereNotIn('id', $usedProductIds)->get();
         } else {
             $warehouses = $user->warehouses;
-            $usedProductIds = Inventory::whereIn('warehouse_id', $warehouses->pluck('id'))->pluck('product_id')->unique();
+            $usedProductIds = Inventory::whereIn('warehouse_id', $warehouses->pluck('id'))
+                ->whereNull('deleted_at')
+                ->pluck('product_id')
+                ->unique();
             $products = Product::whereNotIn('id', $usedProductIds)->get();
         }
 
@@ -128,6 +129,30 @@ class InventoryController extends Controller
             'max_stock' => 'nullable|integer|min:0',
         ]);
 
+        $deletedInventory = Inventory::onlyTrashed()
+            ->where('warehouse_id', $validatedData['warehouse_id'])
+            ->where('product_id', $validatedData['product_id'])
+            ->first();
+
+        if ($deletedInventory) {
+            $deletedInventory->restore();
+            $validatedData['updated_by'] = auth()->id();
+            $deletedInventory->update($validatedData);
+            
+            return redirect()->route('inventory.index')->with('success', 'Inventory yang sudah dihapus berhasil dipulihkan dan diperbarui.');
+        }
+
+        $existingInventory = Inventory::where('warehouse_id', $validatedData['warehouse_id'])
+            ->where('product_id', $validatedData['product_id'])
+            ->whereNull('deleted_at')
+            ->first();
+
+        if ($existingInventory) {
+            return back()->withErrors([
+                'product_id' => 'Produk ini sudah ada di gudang yang dipilih.'
+            ])->withInput();
+        }
+
         $validatedData['updated_by'] = auth()->id();
 
         Inventory::create($validatedData);
@@ -144,6 +169,7 @@ class InventoryController extends Controller
             $warehouses = Warehouse::all();
             $usedProductIds = Inventory::where('warehouse_id', $inventory->warehouse_id)
                 ->where('id', '!=', $inventory->id)
+                ->whereNull('deleted_at')
                 ->pluck('product_id')
                 ->unique();
             $products = Product::whereNotIn('id', $usedProductIds)->get();
@@ -151,6 +177,7 @@ class InventoryController extends Controller
             $warehouses = $user->warehouses;
             $usedProductIds = Inventory::whereIn('warehouse_id', $warehouses->pluck('id'))
                 ->where('id', '!=', $inventory->id)
+                ->whereNull('deleted_at')
                 ->pluck('product_id')
                 ->unique();
             $products = Product::whereNotIn('id', $usedProductIds)->get();
@@ -175,6 +202,19 @@ class InventoryController extends Controller
         ]);
 
         $inventory = Inventory::withTrashed()->findOrFail($id);
+
+        $existingInventory = Inventory::where('warehouse_id', $validatedData['warehouse_id'])
+            ->where('product_id', $validatedData['product_id'])
+            ->where('id', '!=', $id)
+            ->whereNull('deleted_at')
+            ->first();
+
+        if ($existingInventory) {
+            return back()->withErrors([
+                'product_id' => 'Produk ini sudah ada di gudang yang dipilih.'
+            ])->withInput();
+        }
+
         $validatedData['updated_by'] = auth()->id();
         $inventory->update($validatedData);
 
@@ -191,7 +231,6 @@ class InventoryController extends Controller
     {
         $user = auth()->user();
 
-        // Admin dapat melihat semua inventory yang dihapus, user hanya yang terkait warehouse-nya
         if ($user->hasRole('admin')) {
             $inventories = Inventory::onlyTrashed()->with(['product', 'warehouse'])->get();
         } else {
