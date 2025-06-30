@@ -152,17 +152,12 @@ export default function Dashboard({
                         </CardContent>
                     </Card>
                 </AdminOnly>
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-3">
                     <StatsCard
                         title="Total Products"
                         value={stats.total_products.toLocaleString()}
                         icon={<Package className="h-4 w-4 text-blue-600 dark:text-blue-400" />}
                     />
-                    {/* <StatsCard
-                        title="Warehouses"
-                        value={stats.total_warehouses.toLocaleString()}
-                        icon={<Warehouse className="h-4 w-4 text-green-600 dark:text-green-400" />}
-                    /> */}
                     <StatsCard
                         title="Total Inventory"
                         value={`${stats.total_inventory_value.toLocaleString()} units`}
