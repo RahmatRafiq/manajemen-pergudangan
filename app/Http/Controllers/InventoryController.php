@@ -13,13 +13,23 @@ class InventoryController extends Controller
     public function index(Request $request)
     {
         $filter = $request->query('filter', 'active');
-        $userWarehouseIds = auth()->user()->warehouses->pluck('id');
+        $user = auth()->user();
 
-        $inventories = match ($filter) {
-            'trashed' => Inventory::onlyTrashed()->whereIn('warehouse_id', $userWarehouseIds)->with(['product', 'warehouse'])->get(),
-            'all' => Inventory::withTrashed()->whereIn('warehouse_id', $userWarehouseIds)->with(['product', 'warehouse'])->get(),
-            default => Inventory::whereIn('warehouse_id', $userWarehouseIds)->with(['product', 'warehouse'])->get(),
-        };
+        // Admin dapat melihat semua inventory, user hanya yang terkait warehouse-nya
+        if ($user->hasRole('admin')) {
+            $inventories = match ($filter) {
+                'trashed' => Inventory::onlyTrashed()->with(['product', 'warehouse'])->get(),
+                'all' => Inventory::withTrashed()->with(['product', 'warehouse'])->get(),
+                default => Inventory::with(['product', 'warehouse'])->get(),
+            };
+        } else {
+            $userWarehouseIds = $user->warehouses->pluck('id');
+            $inventories = match ($filter) {
+                'trashed' => Inventory::onlyTrashed()->whereIn('warehouse_id', $userWarehouseIds)->with(['product', 'warehouse'])->get(),
+                'all' => Inventory::withTrashed()->whereIn('warehouse_id', $userWarehouseIds)->with(['product', 'warehouse'])->get(),
+                default => Inventory::whereIn('warehouse_id', $userWarehouseIds)->with(['product', 'warehouse'])->get(),
+            };
+        }
 
         return Inertia::render('Inventory/Index', [
             'inventories' => $inventories,
@@ -31,15 +41,25 @@ class InventoryController extends Controller
 
     public function json(Request $request)
     {
-        $userWarehouseIds = auth()->user()->warehouses->pluck('id');
+        $user = auth()->user();
         $search = $request->input('search.value', '');
         $filter = $request->input('filter', 'active');
 
-        $query = match ($filter) {
-            'trashed' => Inventory::onlyTrashed()->whereIn('warehouse_id', $userWarehouseIds)->with(['product', 'warehouse']),
-            'all' => Inventory::withTrashed()->whereIn('warehouse_id', $userWarehouseIds)->with(['product', 'warehouse']),
-            default => Inventory::whereIn('warehouse_id', $userWarehouseIds)->with(['product', 'warehouse']),
-        };
+        // Admin dapat melihat semua inventory, user hanya yang terkait warehouse-nya
+        if ($user->hasRole('admin')) {
+            $query = match ($filter) {
+                'trashed' => Inventory::onlyTrashed()->with(['product', 'warehouse']),
+                'all' => Inventory::withTrashed()->with(['product', 'warehouse']),
+                default => Inventory::with(['product', 'warehouse']),
+            };
+        } else {
+            $userWarehouseIds = $user->warehouses->pluck('id');
+            $query = match ($filter) {
+                'trashed' => Inventory::onlyTrashed()->whereIn('warehouse_id', $userWarehouseIds)->with(['product', 'warehouse']),
+                'all' => Inventory::withTrashed()->whereIn('warehouse_id', $userWarehouseIds)->with(['product', 'warehouse']),
+                default => Inventory::whereIn('warehouse_id', $userWarehouseIds)->with(['product', 'warehouse']),
+            };
+        }
 
         if ($search) {
             $query->whereHas('product', function ($q) use ($search) {
@@ -170,7 +190,16 @@ class InventoryController extends Controller
 
     public function trashed()
     {
-        $inventories = Inventory::onlyTrashed()->with(['product', 'warehouse'])->get();
+        $user = auth()->user();
+
+        // Admin dapat melihat semua inventory yang dihapus, user hanya yang terkait warehouse-nya
+        if ($user->hasRole('admin')) {
+            $inventories = Inventory::onlyTrashed()->with(['product', 'warehouse'])->get();
+        } else {
+            $userWarehouseIds = $user->warehouses->pluck('id');
+            $inventories = Inventory::onlyTrashed()->whereIn('warehouse_id', $userWarehouseIds)->with(['product', 'warehouse'])->get();
+        }
+
         return Inertia::render('Inventory/Trashed', [
             'inventories' => $inventories,
         ]);
