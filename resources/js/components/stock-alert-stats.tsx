@@ -1,15 +1,15 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { AlertTriangle, Package, Bell, TrendingUp } from 'lucide-react';
+// import { Badge } from '@/components/ui/badge';
+import { AlertTriangle, Package, Bell } from 'lucide-react';
 
 interface StockAlertStatsProps {
     totalAlerts: number;
     lowStockCount: number;
     overstockCount: number;
-    unreadCount: number;
+    unreadCount?: number;
 }
 
-export function StockAlertStats({ totalAlerts, lowStockCount, overstockCount, unreadCount }: StockAlertStatsProps) {
+export function StockAlertStats({ totalAlerts, lowStockCount, overstockCount }: StockAlertStatsProps) {
     const stats = [
         {
             title: 'Total Alerts',
@@ -35,18 +35,18 @@ export function StockAlertStats({ totalAlerts, lowStockCount, overstockCount, un
             bgColor: 'bg-orange-100 dark:bg-orange-900/20',
             description: 'Items above maximum',
         },
-        {
-            title: 'Unread',
-            value: unreadCount,
-            icon: TrendingUp,
-            color: 'text-purple-600 dark:text-purple-400',
-            bgColor: 'bg-purple-100 dark:bg-purple-900/20',
-            description: 'New notifications',
-        },
+        // {
+        //     title: 'Unread',
+        //     value: unreadCount,
+        //     icon: TrendingUp,
+        //     color: 'text-purple-600 dark:text-purple-400',
+        //     bgColor: 'bg-purple-100 dark:bg-purple-900/20',
+        //     description: 'New notifications',
+        // },
     ];
 
     return (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {stats.map((stat) => {
                 const Icon = stat.icon;
                 return (
@@ -67,11 +67,11 @@ export function StockAlertStats({ totalAlerts, lowStockCount, overstockCount, un
                                         {stat.description}
                                     </p>
                                 </div>
-                                {stat.value > 0 && stat.title === 'Unread' && (
+                                {/* {stat.value > 0 && stat.title === 'Unread' && (
                                     <Badge variant="destructive" className="text-xs">
                                         New
                                     </Badge>
-                                )}
+                                )} */}
                             </div>
                         </CardContent>
                     </Card>
