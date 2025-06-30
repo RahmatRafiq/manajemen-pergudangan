@@ -31,10 +31,9 @@ interface LowStockItem {
 
 interface MovementAnalysisItem {
     product_name: string;
-    warehouse_name: string;
+    warehouse_count: number;
     total_quantity: number;
     total_movement: number;
-    movement_ratio: number;
     movement_category: string;
     recommendation: {
         status: string;

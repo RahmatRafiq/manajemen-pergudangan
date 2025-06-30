@@ -65,33 +65,21 @@ class Inventory extends Model
             ->setDescriptionForEvent(fn(string $eventName) => "Inventory {$eventName}");
     }
     
-    /**
-     * Check if current stock is below minimum threshold
-     */
     public function isLowStock(): bool
     {
         return !is_null($this->min_stock) && $this->quantity <= $this->min_stock;
     }
 
-    /**
-     * Check if current stock exceeds maximum threshold
-     */
     public function isOverstock(): bool
     {
         return !is_null($this->max_stock) && $this->quantity >= $this->max_stock;
     }
 
-    /**
-     * Check if current stock needs alert
-     */
     public function needsStockAlert(): bool
     {
         return $this->isLowStock() || $this->isOverstock();
     }
 
-    /**
-     * Get stock status
-     */
     public function getStockStatus(): string
     {
         if ($this->isLowStock()) {
@@ -102,35 +90,23 @@ class Inventory extends Model
         return 'normal';
     }
 
-    /**
-     * Get available stock (quantity - reserved)
-     */
     public function getAvailableStock(): int
     {
         return $this->quantity - $this->reserved;
     }
 
-    /**
-     * Scope for low stock items
-     */
     public function scopeLowStock($query)
     {
         return $query->whereNotNull('min_stock')
                     ->whereColumn('quantity', '<=', 'min_stock');
     }
 
-    /**
-     * Scope for overstock items
-     */
     public function scopeOverstock($query)
     {
         return $query->whereNotNull('max_stock')
                     ->whereColumn('quantity', '>=', 'max_stock');
     }
 
-    /**
-     * Scope for items needing attention
-     */
     public function scopeNeedsAttention($query)
     {
         return $query->where(function ($q) {
@@ -144,43 +120,6 @@ class Inventory extends Model
     {
         $dateRange = self::getDateRange($period);
         
-        return static::select([
-                'inventories.product_id',
-                'inventories.warehouse_id',
-                'inventories.quantity as total_quantity', // Fix: Remove SUM, use direct quantity
-                DB::raw('COALESCE(SUM(ABS(stock_transactions.quantity)), 0) as total_movement'),
-                DB::raw('COUNT(stock_transactions.id) as transaction_count'),
-                DB::raw('CASE 
-                    WHEN COALESCE(SUM(ABS(stock_transactions.quantity)), 0) = 0 THEN "no_movement"
-                    WHEN COALESCE(SUM(ABS(stock_transactions.quantity)), 0) < 20 THEN "low_movement"
-                    WHEN COALESCE(SUM(ABS(stock_transactions.quantity)), 0) < 100 THEN "medium_movement"
-                    ELSE "high_movement"
-                END as movement_category')
-            ])
-            ->leftJoin('stock_transactions', function($join) use ($dateRange) {
-                $join->on('inventories.id', '=', 'stock_transactions.inventory_id')
-                     ->whereBetween('stock_transactions.created_at', $dateRange)
-                     ->whereNull('stock_transactions.deleted_at');
-            })
-            ->whereNull('inventories.deleted_at') // Add: Ensure only active inventory records
-            ->groupBy('inventories.id', 'inventories.product_id', 'inventories.warehouse_id', 'inventories.quantity') // Fix: Group by inventory.id and quantity
-            ->orderBy('total_movement', 'asc') // Sort by movement (least active first)
-            ->orderBy('total_quantity', 'desc')
-            ->with(['product', 'warehouse'])
-            ->get()
-            ->map(function($item) {
-                // Add recommendation
-                $item->recommendation = self::getRecommendation($item);
-                
-                return $item;
-            });
-    }
-    
-    public static function getSortedGlobalWithMovementV2($period = 'month')
-    {
-        $dateRange = self::getDateRange($period);
-        
-        // Get per-warehouse data first
         $perWarehouseData = static::select([
                 'inventories.id',
                 'inventories.product_id',
@@ -199,14 +138,12 @@ class Inventory extends Model
             ->with(['product', 'warehouse'])
             ->get();
             
-        // Group by product and sum across warehouses
         $globalData = $perWarehouseData->groupBy('product_id')->map(function($productInventories, $productId) {
             $totalQuantity = $productInventories->sum('quantity');
             $totalMovement = $productInventories->sum('warehouse_movement');
             $totalTransactions = $productInventories->sum('warehouse_transaction_count');
             $product = $productInventories->first()->product;
             
-            // Determine movement category
             $movementCategory = 'no_movement';
             if ($totalMovement >= 100) {
                 $movementCategory = 'high_movement';
@@ -230,7 +167,7 @@ class Inventory extends Model
                     'total_quantity' => $totalQuantity,
                 ])
             ];
-        })->sortByDesc('total_movement')->values(); // Sort by highest movement first by default
+        })->sortByDesc('total_movement')->values();
         
         return $globalData;
     }
@@ -256,7 +193,6 @@ class Inventory extends Model
         $totalMovement = $item->total_movement;
         $totalStock = $item->total_quantity;
         
-        // Jika tidak ada pergerakan sama sekali
         if ($totalMovement == 0) {
             return [
                 'status' => 'danger',
@@ -265,7 +201,6 @@ class Inventory extends Model
             ];
         }
         
-        // Untuk produk dengan pergerakan tinggi (>= 100 unit)
         if ($totalMovement >= 100) {
             return [
                 'status' => 'success',
@@ -274,7 +209,6 @@ class Inventory extends Model
             ];
         }
         
-        // Untuk produk dengan pergerakan sedang (20-99 unit)
         if ($totalMovement >= 20) {
             return [
                 'status' => 'info',
@@ -283,7 +217,6 @@ class Inventory extends Model
             ];
         }
         
-        // Untuk produk dengan pergerakan rendah (1-19 unit)
         if ($totalMovement > 0) {
             return [
                 'status' => 'warning',
@@ -292,7 +225,6 @@ class Inventory extends Model
             ];
         }
         
-        // Fallback
         return [
             'status' => 'info',
             'text' => 'Pergerakan normal - pertahankan level stock',
@@ -300,12 +232,9 @@ class Inventory extends Model
         ];
     }
     
-    /**
-     * Get movement statistics for dashboard
-     */
     public static function getMovementStatistics($period = 'month')
     {
-        $inventories = self::getSortedGlobalWithMovementV2($period);
+        $inventories = self::getSortedGlobalWithMovement($period);
         
         return [
             'total_products' => $inventories->count(),

@@ -228,7 +228,7 @@ export default function Dashboard({
                                                         {item.product_name}
                                                     </div>
                                                     <div className="text-xs text-muted-foreground">
-                                                        {item.warehouse_name} • Ratio: {item.movement_ratio}
+                                                        {item.warehouse_count} warehouse(s) • Movement: {item.total_movement}
                                                     </div>
                                                 </div>
                                                 <div className="text-right">                                                <div className={`text-xs px-2 py-1 rounded ${item.recommendation.status === 'danger' ? 'bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-200' :

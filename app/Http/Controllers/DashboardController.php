@@ -139,10 +139,9 @@ class DashboardController extends Controller
             ->map(function ($item) {
                 return [
                     'product_name' => $item->product->name ?? 'Unknown',
-                    'warehouse_name' => $item->warehouse->name ?? 'Unknown',
+                    'warehouse_count' => $item->warehouse_count ?? 1,
                     'total_quantity' => $item->total_quantity,
                     'total_movement' => $item->total_movement,
-                    'movement_ratio' => $item->movement_ratio,
                     'movement_category' => $item->movement_category,
                     'recommendation' => $item->recommendation,
                 ];
