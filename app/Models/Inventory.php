@@ -169,11 +169,6 @@ class Inventory extends Model
             ->with(['product', 'warehouse'])
             ->get()
             ->map(function($item) {
-                // Calculate movement ratio (movement per stock)
-                $item->movement_ratio = $item->total_quantity > 0 
-                    ? round($item->total_movement / $item->total_quantity, 2) 
-                    : 0;
-                    
                 // Add recommendation
                 $item->recommendation = self::getRecommendation($item);
                 
@@ -221,22 +216,18 @@ class Inventory extends Model
                 $movementCategory = 'low_movement';
             }
             
-            $movementRatio = $totalQuantity > 0 ? round($totalMovement / $totalQuantity, 2) : 0;
-            
             return (object) [
                 'product_id' => $productId,
                 'total_quantity' => $totalQuantity,
                 'total_movement' => $totalMovement,
                 'transaction_count' => $totalTransactions,
                 'movement_category' => $movementCategory,
-                'movement_ratio' => $movementRatio,
                 'product' => $product,
                 'warehouses' => $productInventories->pluck('warehouse')->unique(),
                 'warehouse_count' => $productInventories->count(),
                 'recommendation' => self::getRecommendation((object)[
                     'total_movement' => $totalMovement,
                     'total_quantity' => $totalQuantity,
-                    'movement_ratio' => $movementRatio
                 ])
             ];
         })->sortByDesc('total_movement')->values(); // Sort by highest movement first by default
@@ -264,7 +255,6 @@ class Inventory extends Model
     {
         $totalMovement = $item->total_movement;
         $totalStock = $item->total_quantity;
-        $movementRatio = $item->movement_ratio;
         
         // Jika tidak ada pergerakan sama sekali
         if ($totalMovement == 0) {
@@ -275,61 +265,31 @@ class Inventory extends Model
             ];
         }
         
-        // Untuk produk dengan pergerakan tinggi (>= 100 unit), fokus ke rasio
+        // Untuk produk dengan pergerakan tinggi (>= 100 unit)
         if ($totalMovement >= 100) {
-            if ($movementRatio >= 0.05) { // 5% atau lebih dari stock bergerak
-                return [
-                    'status' => 'success',
-                    'text' => 'Pergerakan tinggi dengan rasio baik - stock berputar optimal',
-                    'action' => 'maintain_or_increase'
-                ];
-            } else {
-                return [
-                    'status' => 'info',
-                    'text' => 'Pergerakan tinggi tapi rasio rendah - monitor trend, pertahankan level saat ini',
-                    'action' => 'maintain'
-                ];
-            }
+            return [
+                'status' => 'success',
+                'text' => 'Pergerakan tinggi - stock berputar dengan baik',
+                'action' => 'maintain_or_increase'
+            ];
         }
         
         // Untuk produk dengan pergerakan sedang (20-99 unit)
         if ($totalMovement >= 20) {
-            if ($movementRatio >= 0.1) { // 10% atau lebih
-                return [
-                    'status' => 'success',
-                    'text' => 'Pergerakan sedang dengan rasio baik - stock berputar efisien',
-                    'action' => 'maintain_or_increase'
-                ];
-            } else if ($movementRatio >= 0.02) { // 2-10%
-                return [
-                    'status' => 'info',
-                    'text' => 'Pergerakan sedang - pertahankan level stock',
-                    'action' => 'maintain'
-                ];
-            } else {
-                return [
-                    'status' => 'warning',
-                    'text' => 'Pergerakan sedang tapi rasio sangat rendah - terlalu banyak stock',
-                    'action' => 'reduce_reorder'
-                ];
-            }
+            return [
+                'status' => 'info',
+                'text' => 'Pergerakan sedang - pertahankan level stock',
+                'action' => 'maintain'
+            ];
         }
         
         // Untuk produk dengan pergerakan rendah (1-19 unit)
         if ($totalMovement > 0) {
-            if ($movementRatio >= 0.1) {
-                return [
-                    'status' => 'info',
-                    'text' => 'Pergerakan rendah tapi rasio baik - stock sesuai dengan demand',
-                    'action' => 'maintain'
-                ];
-            } else {
-                return [
-                    'status' => 'warning',
-                    'text' => 'Pergerakan rendah dengan rasio rendah - kurangi pesanan bulan depan',
-                    'action' => 'reduce_reorder'
-                ];
-            }
+            return [
+                'status' => 'warning',
+                'text' => 'Pergerakan rendah - kurangi pesanan bulan depan',
+                'action' => 'reduce_reorder'
+            ];
         }
         
         // Fallback
@@ -353,7 +313,6 @@ class Inventory extends Model
             'low_movement' => $inventories->where('movement_category', 'low_movement')->count(),
             'medium_movement' => $inventories->where('movement_category', 'medium_movement')->count(),
             'high_movement' => $inventories->where('movement_category', 'high_movement')->count(),
-            'avg_movement_ratio' => $inventories->avg('movement_ratio'),
             'slow_movers' => $inventories->whereIn('movement_category', ['no_movement', 'low_movement'])->count(),
             'recommendations' => [
                 'stop_reorder' => $inventories->where('recommendation.action', 'stop_reorder')->count(),

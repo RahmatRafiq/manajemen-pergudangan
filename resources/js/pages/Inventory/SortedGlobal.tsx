@@ -20,7 +20,6 @@ type InventoryGlobal = {
     total_movement: number;
     transaction_count: number;
     movement_category: 'no_movement' | 'low_movement' | 'medium_movement' | 'high_movement';
-    movement_ratio: number;
     recommendation: {
         status: 'danger' | 'warning' | 'info' | 'success';
         text: string;
@@ -38,7 +37,7 @@ type Props = {
 
 export default function SortedGlobal({ inventories, period, periods }: Props) {
     const [movementFilter, setMovementFilter] = useState<string>('all');
-    const [sortBy, setSortBy] = useState<'movement' | 'quantity' | 'ratio'>('movement');
+    const [sortBy, setSortBy] = useState<'movement' | 'quantity'>('movement');
     const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc'); // Default to desc for showing highest first
 
     const handlePeriodChange = (newPeriod: string) => {
@@ -49,7 +48,7 @@ export default function SortedGlobal({ inventories, period, periods }: Props) {
     };
 
     // Handle sorting by column header click
-    const handleSort = (column: 'movement' | 'quantity' | 'ratio') => {
+    const handleSort = (column: 'movement' | 'quantity') => {
         if (sortBy === column) {
             // Toggle sort order if same column
             setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
@@ -82,10 +81,6 @@ export default function SortedGlobal({ inventories, period, periods }: Props) {
                     aValue = a.total_quantity || 0;
                     bValue = b.total_quantity || 0;
                     break;
-                case 'ratio':
-                    aValue = a.movement_ratio || 0;
-                    bValue = b.movement_ratio || 0;
-                    break;
                 default:
                     aValue = a.total_movement || 0;
                     bValue = b.total_movement || 0;
@@ -102,7 +97,7 @@ export default function SortedGlobal({ inventories, period, periods }: Props) {
     }, [inventories, movementFilter, sortBy, sortOrder]);
 
     const exportToCSV = () => {
-        const headers = ['Product', 'SKU', 'Total Stock', 'Movement', 'Transactions', 'Category', 'Ratio', 'Recommendation'];
+        const headers = ['Product', 'SKU', 'Total Stock', 'Movement', 'Transactions', 'Category', 'Recommendation'];
         const csvData = filteredAndSortedInventories.map(inv => [
             inv.product?.name || '',
             inv.product?.sku || '',
@@ -110,7 +105,6 @@ export default function SortedGlobal({ inventories, period, periods }: Props) {
             inv.total_movement,
             inv.transaction_count,
             inv.movement_category.replace('_', ' ').toUpperCase(),
-            inv.movement_ratio?.toFixed(2) || '0',
             inv.recommendation?.text || ''
         ]);
 
@@ -161,9 +155,7 @@ export default function SortedGlobal({ inventories, period, periods }: Props) {
             lowMovement: allInventories.filter(inv => inv.movement_category === 'low_movement').length,
             mediumMovement: allInventories.filter(inv => inv.movement_category === 'medium_movement').length,
             highMovement: allInventories.filter(inv => inv.movement_category === 'high_movement').length,
-            avgRatio: allInventories.length > 0 ? (allInventories.reduce((sum, inv) => sum + (inv.movement_ratio || 0), 0) / allInventories.length).toFixed(2) : '0',
             needAttention: allInventories.filter(inv => ['no_movement', 'low_movement'].includes(inv.movement_category)).length,
-            filteredAvgRatio: filtered.length > 0 ? (filtered.reduce((sum, inv) => sum + (inv.movement_ratio || 0), 0) / filtered.length).toFixed(2) : '0'
         };
     }, [inventories, filteredAndSortedInventories]);
 
@@ -276,12 +268,11 @@ export default function SortedGlobal({ inventories, period, periods }: Props) {
                         <div className="flex gap-2">
                             <select 
                                 value={sortBy} 
-                                onChange={(e) => setSortBy(e.target.value as 'movement' | 'quantity' | 'ratio')}
+                                onChange={(e) => setSortBy(e.target.value as 'movement' | 'quantity')}
                                 className="border border-input rounded-md px-3 py-2 bg-background text-foreground flex-1 focus:ring-2 focus:ring-ring focus:border-transparent"
                             >
                                 <option value="movement">Total Movement</option>
                                 <option value="quantity">Total Stock</option>
-                                <option value="ratio">Movement Ratio</option>
                             </select>
                             <button
                                 onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
@@ -295,7 +286,7 @@ export default function SortedGlobal({ inventories, period, periods }: Props) {
                 </div>
 
                 {/* Summary Cards */}
-                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 mb-6">
+                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4 mb-6">
                     <div className="bg-white dark:bg-card p-4 rounded-lg shadow border border-border">
                         <h3 className="text-sm font-medium text-muted-foreground">Total Products</h3>
                         <p className="text-2xl font-bold text-foreground">{stats.total}</p>
@@ -330,13 +321,6 @@ export default function SortedGlobal({ inventories, period, periods }: Props) {
                         <p className="text-xs text-green-600 dark:text-green-400">
                             {stats.total > 0 ? ((stats.highMovement / stats.total) * 100).toFixed(1) : 0}%
                         </p>
-                    </div>
-                    <div className="bg-purple-50 dark:bg-purple-950/50 p-4 rounded-lg border border-purple-200 dark:border-purple-800">
-                        <h3 className="text-sm font-medium text-purple-800 dark:text-purple-200">Average Ratio</h3>
-                        <p className="text-2xl font-bold text-purple-900 dark:text-purple-100">
-                            {movementFilter === 'all' ? stats.avgRatio : stats.filteredAvgRatio}
-                        </p>
-                        <p className="text-xs text-purple-600 dark:text-purple-400">movement/stock</p>
                     </div>
                 </div>
 
@@ -402,10 +386,6 @@ export default function SortedGlobal({ inventories, period, periods }: Props) {
                                 <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                                     Category
                                 </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-muted/80"
-                                    onClick={() => handleSort('ratio')}>
-                                    Ratio {sortBy === 'ratio' && (sortOrder === 'desc' ? '↓' : '↑')}
-                                </th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                                     Recommendation
                                 </th>
@@ -441,9 +421,6 @@ export default function SortedGlobal({ inventories, period, periods }: Props) {
                                         <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getMovementBadge(inv.movement_category)}`}>
                                             {inv.movement_category.replace('_', ' ').toUpperCase()}
                                         </span>
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">
-                                        {inv.movement_ratio?.toFixed(2)}
                                     </td>
                                     <td className="px-6 py-4">
                                         <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getRecommendationBadge(inv.recommendation?.status)}`}>
