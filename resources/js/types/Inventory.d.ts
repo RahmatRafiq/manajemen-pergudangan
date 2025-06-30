@@ -9,6 +9,9 @@ export interface Inventory {
     updated_by: number | null;
     updated_at: string;
     trashed?: boolean;
+    stock_status?: string;
+    is_low_stock?: boolean;
+    is_overstock?: boolean;
     warehouse?: {
         id: number;
         name: string;

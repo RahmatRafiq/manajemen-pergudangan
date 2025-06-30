@@ -88,6 +88,9 @@ class InventoryController extends Controller
                 'max_stock' => $inventory->max_stock,
                 'updated_at' => $inventory->updated_at,
                 'trashed' => $inventory->trashed(),
+                'stock_status' => $inventory->getStockStatus(),
+                'is_low_stock' => $inventory->isLowStock(),
+                'is_overstock' => $inventory->isOverstock(),
                 'actions' => '',
             ];
         });

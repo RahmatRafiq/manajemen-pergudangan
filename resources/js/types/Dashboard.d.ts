@@ -29,6 +29,15 @@ interface LowStockItem {
     percentage: number;
 }
 
+interface OverstockItem {
+    product_name: string;
+    product_sku: string;
+    warehouse_name: string;
+    current_stock: number;
+    max_stock: number;
+    percentage: number;
+}
+
 interface MovementAnalysisItem {
     product_name: string;
     warehouse_count: number;
@@ -74,6 +83,7 @@ interface DashboardProps {
     recent_transactions: Transaction[];
     top_moving_products: TopMovingProduct[];
     low_stock_details: LowStockItem[];
+    overstock_details: OverstockItem[];
     movement_analysis: MovementAnalysisItem[];
     warehouse_performance: WarehousePerformanceItem[];
     is_global_access: boolean;

@@ -3,6 +3,7 @@ import AppLayout from '@/layouts/app-layout';
 import StatsCard from '@/components/dashboard/StatsCard';
 import RecentTransactions from '@/components/dashboard/RecentTransactions';
 import LowStockAlerts from '@/components/dashboard/LowStockAlerts';
+import OverstockAlerts from '@/components/dashboard/OverstockAlerts';
 import TransactionChart from '@/components/dashboard/TransactionChart';
 import TopMovingProducts from '@/components/dashboard/TopMovingProducts';
 import { AdminOnly } from '@/components/protected-component';
@@ -32,6 +33,7 @@ export default function Dashboard({
     recent_transactions,
     top_moving_products,
     low_stock_details,
+    overstock_details,
     movement_analysis,
     warehouse_performance,
     is_global_access,
@@ -123,7 +125,7 @@ export default function Dashboard({
                             </CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                            <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
                                 <Link href="/users">
                                     <Button variant="outline" size="sm" className="w-full">
                                         <Users className="h-4 w-4 mr-2" />
@@ -182,10 +184,10 @@ export default function Dashboard({
                                     </div>
                                 </div>
                             </div>
-                            <Link href="/stock-alerts">
+                            <Link href="/inventory">
                                 <Button variant="outline" size="sm">
                                     <Eye className="h-4 w-4 mr-2" />
-                                    View Alerts
+                                    View Inventories
                                 </Button>
                             </Link>
                         </CardContent>
@@ -285,6 +287,7 @@ export default function Dashboard({
                     </div>
                     <div className="space-y-6">
                         <LowStockAlerts items={low_stock_details} />
+                        <OverstockAlerts items={overstock_details} />
                         <RecentTransactions transactions={recent_transactions} />
                     </div>
                 </div>
