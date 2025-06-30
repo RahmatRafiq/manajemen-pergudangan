@@ -68,7 +68,7 @@ class ProductController extends Controller
             };
         }
 
-        $query->with(['category', 'creator']);
+        $query->with(['category']);
 
         if ($search) {
             $query->where(function ($q) use ($search) {
@@ -93,7 +93,6 @@ class ProductController extends Controller
                 'name' => $product->name,
                 'category' => $product->category?->name,
                 'unit' => $product->unit,
-                'created_by' => $product->creator?->name,
                 'trashed' => $product->trashed(),
                 'actions' => '',
             ];

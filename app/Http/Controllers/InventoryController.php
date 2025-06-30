@@ -71,7 +71,7 @@ class InventoryController extends Controller
             });
         }
 
-        $columns = ['id', 'warehouse_id', 'product_id', 'quantity', 'reserved', 'min_stock', 'max_stock', 'updated_at'];
+        $columns = ['id', 'warehouse_id', 'product_id', 'quantity', 'min_stock', 'max_stock', 'updated_at'];
         if ($request->filled('order')) {
             $orderColumn = $columns[$request->order[0]['column']] ?? 'id';
             $query->orderBy($orderColumn, $request->order[0]['dir']);
@@ -86,7 +86,6 @@ class InventoryController extends Controller
                 'product' => $inventory->product?->name,
                 'sku' => $inventory->product?->sku,
                 'quantity' => $inventory->quantity,
-                'reserved' => $inventory->reserved,
                 'min_stock' => $inventory->min_stock,
                 'max_stock' => $inventory->max_stock,
                 'updated_at' => $inventory->updated_at,

@@ -15,7 +15,7 @@ const columns = (filter: string) => [
     { data: 'product', title: 'Product' },
     { data: 'sku', title: 'SKU' },
     { data: 'quantity', title: 'Quantity' },
-    { data: 'reserved', title: 'Reserved' },
+    // { data: 'reserved', title: 'Reserved' },
     { data: 'min_stock', title: 'Min Stock' },
     { data: 'max_stock', title: 'Max Stock' },
     { data: 'updated_at', title: 'Updated At' },
