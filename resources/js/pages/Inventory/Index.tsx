@@ -15,7 +15,7 @@ const columns = (filter: string) => [
     { data: 'product', title: 'Product' },
     { data: 'sku', title: 'SKU' },
     { data: 'quantity', title: 'Quantity' },
-    { data: 'reserved', title: 'Reserved' },
+    // { data: 'reserved', title: 'Reserved' },
     { data: 'min_stock', title: 'Min Stock' },
     { data: 'max_stock', title: 'Max Stock' },
     { data: 'updated_at', title: 'Updated At' },
@@ -63,6 +63,33 @@ export default function InventoryIndex({ filter: initialFilter, success }: { fil
     };
 
     const drawCallback = () => {
+        // Apply row coloring based on stock status
+        const dataTable = dtRef.current?.dt();
+        if (dataTable) {
+            document.querySelectorAll('table tbody tr').forEach((row, index) => {
+                const rowData = dataTable.row(index).data();
+                const htmlRow = row as HTMLElement;
+                if (rowData) {
+                    // Debug: Log the row data to see what we're getting
+                    if (index === 0) {
+                        console.log('Sample row data:', rowData);
+                    }
+                    
+                    // Remove existing classes
+                    htmlRow.classList.remove('bg-red-50', 'bg-blue-50', 'dark:bg-red-950/50', 'dark:bg-blue-950/50', 'low-stock-row', 'overstock-row');
+                    
+                    // Add classes based on stock status
+                    if (rowData.is_low_stock === true) {
+                        htmlRow.classList.add('low-stock-row');
+                        console.log('Applied low-stock-row to row', index);
+                    } else if (rowData.is_overstock === true) {
+                        htmlRow.classList.add('overstock-row');
+                        console.log('Applied overstock-row to row', index);
+                    }
+                }
+            });
+        }
+
         document.querySelectorAll('.inertia-link-cell').forEach((cell) => {
             const id = cell.getAttribute('data-id');
             if (id) {
@@ -123,6 +150,28 @@ export default function InventoryIndex({ filter: initialFilter, success }: { fil
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Inventory Management" />
+            <style>{`
+                .low-stock-row {
+                    background-color: rgba(254, 226, 226, 0.5) !important;
+                }
+                .overstock-row {
+                    background-color: rgba(219, 234, 254, 0.5) !important;
+                }
+                .low-stock-row:hover {
+                    background-color: rgba(254, 226, 226, 0.7) !important;
+                }
+                .overstock-row:hover {
+                    background-color: rgba(219, 234, 254, 0.7) !important;
+                }
+                @media (prefers-color-scheme: dark) {
+                    .low-stock-row {
+                        background-color: rgba(127, 29, 29, 0.3) !important;
+                    }
+                    .overstock-row {
+                        background-color: rgba(30, 58, 138, 0.3) !important;
+                    }
+                }
+            `}</style>
             <div className="px-4 py-6">
                 <h1 className="text-2xl font-semibold mb-4">Inventory Management</h1>
                 <div className="col-md-12">
@@ -134,6 +183,25 @@ export default function InventoryIndex({ filter: initialFilter, success }: { fil
                         </Link>
                     </div>
                     <div className="mb-4">{renderToggleTabs()}</div>
+                    
+                    {/* Stock Status Legend */}
+                    <div className="mb-4 p-3 bg-gray-50 dark:bg-gray-900 rounded-lg">
+                        <h4 className="text-sm font-medium mb-2">Stock Status Legend:</h4>
+                        <div className="flex flex-wrap gap-4 text-xs">
+                            <div className="flex items-center gap-2">
+                                <div className="w-4 h-4 bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-800 rounded"></div>
+                                <span>Low Stock</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <div className="w-4 h-4 bg-blue-50 dark:bg-blue-950/50 border border-blue-200 dark:border-blue-800 rounded"></div>
+                                <span>Overstock</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <div className="w-4 h-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded"></div>
+                                <span>Normal Stock</span>
+                            </div>
+                        </div>
+                    </div>
                     {success && (
                         <div className="p-2 mb-2 bg-green-100 text-green-800 rounded">{success}</div>
                     )}

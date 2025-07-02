@@ -35,7 +35,6 @@ export default function InventoryForm({ inventory, products, warehouses }: Props
         warehouse_id: inventory?.warehouse_id || '',
         product_id: inventory?.product_id || '',
         quantity: inventory?.quantity || 0,
-        reserved: inventory?.reserved || 0,
         min_stock: inventory?.min_stock || 0,
         max_stock: inventory?.max_stock || 0,
     });
@@ -136,17 +135,7 @@ export default function InventoryForm({ inventory, products, warehouses }: Props
                                 />
                                 <InputError message={errors.quantity} />
                             </div>
-                            {/* Reserved */}
-                            <div>
-                                <Label htmlFor="reserved">Reserved</Label>
-                                <Input
-                                    id="reserved"
-                                    type="number"
-                                    value={data.reserved}
-                                    onChange={(e) => setData('reserved', Number(e.target.value))}
-                                />
-                                <InputError message={errors.reserved} />
-                            </div>
+                           
                             {/* Min Stock */}
                             <div>
                                 <Label htmlFor="min_stock">Min Stock</Label>

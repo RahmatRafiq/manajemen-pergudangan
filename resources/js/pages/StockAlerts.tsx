@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Bell, Package, Loader2, Search, Filter, RefreshCw, CheckCircle } from 'lucide-react';
+import { Bell, Package, Loader2, Search, Filter, RefreshCw } from 'lucide-react';
 import Toastify from 'toastify-js';
 import 'toastify-js/src/toastify.css';
 
@@ -26,7 +26,7 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 export default function StockAlertsPage() {
-    const { alerts, unreadCount, isConnected, markAsRead, markAllAsRead, clearAlerts, loadAlertsFromDatabase } = useStockAlerts();
+    const { alerts, isConnected, markAsRead, clearAlerts, loadAlertsFromDatabase } = useStockAlerts();
     const [filteredAlerts, setFilteredAlerts] = useState<StockAlert[]>([]);
     const [searchTerm, setSearchTerm] = useState('');
     const [filterType, setFilterType] = useState<'all' | 'low_stock' | 'overstock'>('all');
@@ -69,29 +69,29 @@ export default function StockAlertsPage() {
         }
     };
 
-    const handleMarkAllAsRead = async () => {
-        try {
-            await markAllAsRead();
-            Toastify({
-                text: "✅ All alerts marked as read",
-                duration: 3000,
-                className: "success",
-                style: {
-                    background: "linear-gradient(to right, #00b09b, #96c93d)",
-                }
-            }).showToast();
-        } catch (error) {
-            console.error('Error marking all alerts as read:', error);
-            Toastify({
-                text: "❌ Failed to mark all alerts as read",
-                duration: 3000,
-                className: "error",
-                style: {
-                    background: "linear-gradient(to right, #ff4757, #ff6b7a)",
-                }
-            }).showToast();
-        }
-    };
+    // const handleMarkAllAsRead = async () => {
+    //     try {
+    //         await markAllAsRead();
+    //         Toastify({
+    //             text: "✅ All alerts marked as read",
+    //             duration: 3000,
+    //             className: "success",
+    //             style: {
+    //                 background: "linear-gradient(to right, #00b09b, #96c93d)",
+    //             }
+    //         }).showToast();
+    //     } catch (error) {
+    //         console.error('Error marking all alerts as read:', error);
+    //         Toastify({
+    //             text: "❌ Failed to mark all alerts as read",
+    //             duration: 3000,
+    //             className: "error",
+    //             style: {
+    //                 background: "linear-gradient(to right, #ff4757, #ff6b7a)",
+    //             }
+    //         }).showToast();
+    //     }
+    // };
 
     const handleClearAll = async () => {
         try {
@@ -157,7 +157,7 @@ export default function StockAlertsPage() {
                             Refresh
                         </Button>
                         
-                        {unreadCount > 0 && (
+                        {/* {unreadCount > 0 && (
                             <Button
                                 variant="outline"
                                 size="sm"
@@ -166,7 +166,7 @@ export default function StockAlertsPage() {
                                 <CheckCircle className="h-4 w-4" />
                                 Mark All Read
                             </Button>
-                        )}
+                        )} */}
                         {filteredAlerts.length > 0 && (
                             <Button
                                 variant="outline"
@@ -182,7 +182,6 @@ export default function StockAlertsPage() {
                     totalAlerts={filteredAlerts.length}
                     lowStockCount={lowStockCount}
                     overstockCount={overstockCount}
-                    unreadCount={unreadCount}
                 />
                 <Card>
                     <CardHeader>

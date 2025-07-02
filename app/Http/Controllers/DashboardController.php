@@ -133,16 +133,33 @@ class DashboardController extends Controller
                 ];
             });
         
+        // Overstock Items Detail
+        $overstockDetails = (clone $inventoryQuery)
+            ->overstock()
+            ->with(['product', 'warehouse'])
+            ->orderBy('quantity', 'desc')
+            ->limit(10)
+            ->get()
+            ->map(function ($item) {
+                return [
+                    'product_name' => $item->product->name,
+                    'product_sku' => $item->product->sku,
+                    'warehouse_name' => $item->warehouse->name,
+                    'current_stock' => $item->quantity,
+                    'max_stock' => $item->max_stock,
+                    'percentage' => $item->max_stock > 0 ? round(($item->quantity / $item->max_stock) * 100, 1) : 0,
+                ];
+            });
+        
         // Movement Analysis
         $movementAnalysis = Inventory::getSortedGlobalWithMovement('month')
             ->take(5)
             ->map(function ($item) {
                 return [
                     'product_name' => $item->product->name ?? 'Unknown',
-                    'warehouse_name' => $item->warehouse->name ?? 'Unknown',
+                    'warehouse_count' => $item->warehouse_count ?? 1,
                     'total_quantity' => $item->total_quantity,
                     'total_movement' => $item->total_movement,
-                    'movement_ratio' => $item->movement_ratio,
                     'movement_category' => $item->movement_category,
                     'recommendation' => $item->recommendation,
                 ];
@@ -193,6 +210,7 @@ class DashboardController extends Controller
             'recent_transactions' => $recentTransactions,
             'top_moving_products' => $topMovingProducts,
             'low_stock_details' => $lowStockDetails,
+            'overstock_details' => $overstockDetails,
             'movement_analysis' => $movementAnalysis,
             'warehouse_performance' => $warehousePerformance,
             'is_global_access' => $isGlobalAccess,

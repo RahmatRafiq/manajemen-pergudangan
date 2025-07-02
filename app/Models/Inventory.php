@@ -65,33 +65,21 @@ class Inventory extends Model
             ->setDescriptionForEvent(fn(string $eventName) => "Inventory {$eventName}");
     }
     
-    /**
-     * Check if current stock is below minimum threshold
-     */
     public function isLowStock(): bool
     {
         return !is_null($this->min_stock) && $this->quantity <= $this->min_stock;
     }
 
-    /**
-     * Check if current stock exceeds maximum threshold
-     */
     public function isOverstock(): bool
     {
         return !is_null($this->max_stock) && $this->quantity >= $this->max_stock;
     }
 
-    /**
-     * Check if current stock needs alert
-     */
     public function needsStockAlert(): bool
     {
         return $this->isLowStock() || $this->isOverstock();
     }
 
-    /**
-     * Get stock status
-     */
     public function getStockStatus(): string
     {
         if ($this->isLowStock()) {
@@ -102,35 +90,23 @@ class Inventory extends Model
         return 'normal';
     }
 
-    /**
-     * Get available stock (quantity - reserved)
-     */
     public function getAvailableStock(): int
     {
         return $this->quantity - $this->reserved;
     }
 
-    /**
-     * Scope for low stock items
-     */
     public function scopeLowStock($query)
     {
         return $query->whereNotNull('min_stock')
                     ->whereColumn('quantity', '<=', 'min_stock');
     }
 
-    /**
-     * Scope for overstock items
-     */
     public function scopeOverstock($query)
     {
         return $query->whereNotNull('max_stock')
                     ->whereColumn('quantity', '>=', 'max_stock');
     }
 
-    /**
-     * Scope for items needing attention
-     */
     public function scopeNeedsAttention($query)
     {
         return $query->where(function ($q) {
@@ -144,40 +120,56 @@ class Inventory extends Model
     {
         $dateRange = self::getDateRange($period);
         
-        return static::select([
+        $perWarehouseData = static::select([
+                'inventories.id',
                 'inventories.product_id',
                 'inventories.warehouse_id',
-                DB::raw('SUM(inventories.quantity) as total_quantity'),
-                DB::raw('COALESCE(SUM(ABS(stock_transactions.quantity)), 0) as total_movement'),
-                DB::raw('COUNT(stock_transactions.id) as transaction_count'),
-                DB::raw('CASE 
-                    WHEN COALESCE(SUM(ABS(stock_transactions.quantity)), 0) = 0 THEN "no_movement"
-                    WHEN COALESCE(SUM(ABS(stock_transactions.quantity)), 0) < 20 THEN "low_movement"
-                    WHEN COALESCE(SUM(ABS(stock_transactions.quantity)), 0) < 100 THEN "medium_movement"
-                    ELSE "high_movement"
-                END as movement_category')
+                'inventories.quantity',
+                DB::raw('COALESCE(SUM(ABS(stock_transactions.quantity)), 0) as warehouse_movement'),
+                DB::raw('COUNT(stock_transactions.id) as warehouse_transaction_count')
             ])
             ->leftJoin('stock_transactions', function($join) use ($dateRange) {
                 $join->on('inventories.id', '=', 'stock_transactions.inventory_id')
                      ->whereBetween('stock_transactions.created_at', $dateRange)
                      ->whereNull('stock_transactions.deleted_at');
             })
-            ->groupBy('inventories.product_id', 'inventories.warehouse_id')
-            ->orderBy('total_movement', 'asc') // Sort by movement (least active first)
-            ->orderBy('total_quantity', 'desc')
+            ->whereNull('inventories.deleted_at')
+            ->groupBy('inventories.id', 'inventories.product_id', 'inventories.warehouse_id', 'inventories.quantity')
             ->with(['product', 'warehouse'])
-            ->get()
-            ->map(function($item) {
-                // Calculate movement ratio (movement per stock)
-                $item->movement_ratio = $item->total_quantity > 0 
-                    ? round($item->total_movement / $item->total_quantity, 2) 
-                    : 0;
-                    
-                // Add recommendation
-                $item->recommendation = self::getRecommendation($item);
-                
-                return $item;
-            });
+            ->get();
+            
+        $globalData = $perWarehouseData->groupBy('product_id')->map(function($productInventories, $productId) {
+            $totalQuantity = $productInventories->sum('quantity');
+            $totalMovement = $productInventories->sum('warehouse_movement');
+            $totalTransactions = $productInventories->sum('warehouse_transaction_count');
+            $product = $productInventories->first()->product;
+            
+            $movementCategory = 'no_movement';
+            if ($totalMovement >= 100) {
+                $movementCategory = 'high_movement';
+            } elseif ($totalMovement >= 20) {
+                $movementCategory = 'medium_movement';
+            } elseif ($totalMovement > 0) {
+                $movementCategory = 'low_movement';
+            }
+            
+            return (object) [
+                'product_id' => $productId,
+                'total_quantity' => $totalQuantity,
+                'total_movement' => $totalMovement,
+                'transaction_count' => $totalTransactions,
+                'movement_category' => $movementCategory,
+                'product' => $product,
+                'warehouses' => $productInventories->pluck('warehouse')->unique(),
+                'warehouse_count' => $productInventories->count(),
+                'recommendation' => self::getRecommendation((object)[
+                    'total_movement' => $totalMovement,
+                    'total_quantity' => $totalQuantity,
+                ])
+            ];
+        })->sortByDesc('total_movement')->values();
+        
+        return $globalData;
     }
     
     protected static function getDateRange($period)
@@ -200,9 +192,7 @@ class Inventory extends Model
     {
         $totalMovement = $item->total_movement;
         $totalStock = $item->total_quantity;
-        $movementRatio = $item->movement_ratio;
         
-        // Jika tidak ada pergerakan sama sekali
         if ($totalMovement == 0) {
             return [
                 'status' => 'danger',
@@ -211,64 +201,30 @@ class Inventory extends Model
             ];
         }
         
-        // Untuk produk dengan pergerakan tinggi (>= 100 unit), fokus ke rasio
         if ($totalMovement >= 100) {
-            if ($movementRatio >= 0.05) { // 5% atau lebih dari stock bergerak
-                return [
-                    'status' => 'success',
-                    'text' => 'Pergerakan tinggi dengan rasio baik - stock berputar optimal',
-                    'action' => 'maintain_or_increase'
-                ];
-            } else {
-                return [
-                    'status' => 'info',
-                    'text' => 'Pergerakan tinggi tapi rasio rendah - monitor trend, pertahankan level saat ini',
-                    'action' => 'maintain'
-                ];
-            }
+            return [
+                'status' => 'success',
+                'text' => 'Pergerakan tinggi - stock berputar dengan baik',
+                'action' => 'maintain_or_increase'
+            ];
         }
         
-        // Untuk produk dengan pergerakan sedang (20-99 unit)
         if ($totalMovement >= 20) {
-            if ($movementRatio >= 0.1) { // 10% atau lebih
-                return [
-                    'status' => 'success',
-                    'text' => 'Pergerakan sedang dengan rasio baik - stock berputar efisien',
-                    'action' => 'maintain_or_increase'
-                ];
-            } else if ($movementRatio >= 0.02) { // 2-10%
-                return [
-                    'status' => 'info',
-                    'text' => 'Pergerakan sedang - pertahankan level stock',
-                    'action' => 'maintain'
-                ];
-            } else {
-                return [
-                    'status' => 'warning',
-                    'text' => 'Pergerakan sedang tapi rasio sangat rendah - terlalu banyak stock',
-                    'action' => 'reduce_reorder'
-                ];
-            }
+            return [
+                'status' => 'info',
+                'text' => 'Pergerakan sedang - pertahankan level stock',
+                'action' => 'maintain'
+            ];
         }
         
-        // Untuk produk dengan pergerakan rendah (1-19 unit)
         if ($totalMovement > 0) {
-            if ($movementRatio >= 0.1) {
-                return [
-                    'status' => 'info',
-                    'text' => 'Pergerakan rendah tapi rasio baik - stock sesuai dengan demand',
-                    'action' => 'maintain'
-                ];
-            } else {
-                return [
-                    'status' => 'warning',
-                    'text' => 'Pergerakan rendah dengan rasio rendah - kurangi pesanan bulan depan',
-                    'action' => 'reduce_reorder'
-                ];
-            }
+            return [
+                'status' => 'warning',
+                'text' => 'Pergerakan rendah - kurangi pesanan bulan depan',
+                'action' => 'reduce_reorder'
+            ];
         }
         
-        // Fallback
         return [
             'status' => 'info',
             'text' => 'Pergerakan normal - pertahankan level stock',
@@ -276,9 +232,6 @@ class Inventory extends Model
         ];
     }
     
-    /**
-     * Get movement statistics for dashboard
-     */
     public static function getMovementStatistics($period = 'month')
     {
         $inventories = self::getSortedGlobalWithMovement($period);
@@ -289,10 +242,7 @@ class Inventory extends Model
             'low_movement' => $inventories->where('movement_category', 'low_movement')->count(),
             'medium_movement' => $inventories->where('movement_category', 'medium_movement')->count(),
             'high_movement' => $inventories->where('movement_category', 'high_movement')->count(),
-            'avg_movement_ratio' => $inventories->avg('movement_ratio'),
-            'slow_movers' => $inventories->where('movement_category', 'no_movement')
-                                       ->orWhere('movement_category', 'low_movement')
-                                       ->count(),
+            'slow_movers' => $inventories->whereIn('movement_category', ['no_movement', 'low_movement'])->count(),
             'recommendations' => [
                 'stop_reorder' => $inventories->where('recommendation.action', 'stop_reorder')->count(),
                 'reduce_reorder' => $inventories->where('recommendation.action', 'reduce_reorder')->count(),

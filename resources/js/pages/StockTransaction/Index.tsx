@@ -15,8 +15,6 @@ const columns = (filter: string) => [
     { data: 'sku', title: 'SKU' },
     { data: 'quantity', title: 'Quantity' },
     { data: 'reference', title: 'Reference' },
-    { data: 'created_by', title: 'Created By' },
-    { data: 'approved_by', title: 'Approved By' },
     { data: 'created_at', title: 'Created At' },
     {
         data: null,

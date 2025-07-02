@@ -3,6 +3,7 @@ import AppLayout from '@/layouts/app-layout';
 import StatsCard from '@/components/dashboard/StatsCard';
 import RecentTransactions from '@/components/dashboard/RecentTransactions';
 import LowStockAlerts from '@/components/dashboard/LowStockAlerts';
+import OverstockAlerts from '@/components/dashboard/OverstockAlerts';
 import TransactionChart from '@/components/dashboard/TransactionChart';
 import TopMovingProducts from '@/components/dashboard/TopMovingProducts';
 import { AdminOnly } from '@/components/protected-component';
@@ -32,6 +33,7 @@ export default function Dashboard({
     recent_transactions,
     top_moving_products,
     low_stock_details,
+    overstock_details,
     movement_analysis,
     warehouse_performance,
     is_global_access,
@@ -123,7 +125,7 @@ export default function Dashboard({
                             </CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                            <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
                                 <Link href="/users">
                                     <Button variant="outline" size="sm" className="w-full">
                                         <Users className="h-4 w-4 mr-2" />
@@ -152,17 +154,12 @@ export default function Dashboard({
                         </CardContent>
                     </Card>
                 </AdminOnly>
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-3">
                     <StatsCard
                         title="Total Products"
                         value={stats.total_products.toLocaleString()}
                         icon={<Package className="h-4 w-4 text-blue-600 dark:text-blue-400" />}
                     />
-                    {/* <StatsCard
-                        title="Warehouses"
-                        value={stats.total_warehouses.toLocaleString()}
-                        icon={<Warehouse className="h-4 w-4 text-green-600 dark:text-green-400" />}
-                    /> */}
                     <StatsCard
                         title="Total Inventory"
                         value={`${stats.total_inventory_value.toLocaleString()} units`}
@@ -187,10 +184,10 @@ export default function Dashboard({
                                     </div>
                                 </div>
                             </div>
-                            <Link href="/stock-alerts">
+                            <Link href="/inventory">
                                 <Button variant="outline" size="sm">
                                     <Eye className="h-4 w-4 mr-2" />
-                                    View Alerts
+                                    View Inventories
                                 </Button>
                             </Link>
                         </CardContent>
@@ -228,7 +225,7 @@ export default function Dashboard({
                                                         {item.product_name}
                                                     </div>
                                                     <div className="text-xs text-muted-foreground">
-                                                        {item.warehouse_name} • Ratio: {item.movement_ratio}
+                                                        {item.warehouse_count} warehouse(s) • Movement: {item.total_movement}
                                                     </div>
                                                 </div>
                                                 <div className="text-right">                                                <div className={`text-xs px-2 py-1 rounded ${item.recommendation.status === 'danger' ? 'bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-200' :
@@ -290,6 +287,7 @@ export default function Dashboard({
                     </div>
                     <div className="space-y-6">
                         <LowStockAlerts items={low_stock_details} />
+                        <OverstockAlerts items={overstock_details} />
                         <RecentTransactions transactions={recent_transactions} />
                     </div>
                 </div>

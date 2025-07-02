@@ -66,7 +66,7 @@ class StockTransactionController extends Controller
             })->orWhere('reference', 'like', "%{$search}%");
         }
 
-        $columns = ['id', 'type', 'quantity', 'reference', 'description', 'created_by', 'approved_by', 'created_at', 'approved_at'];
+        $columns = ['id', 'type', 'quantity', 'reference', 'description',  'approved_by', 'created_at', 'approved_at'];
         if ($request->filled('order')) {
             $orderColumn = $columns[$request->order[0]['column']] ?? 'id';
             $query->orderBy($orderColumn, $request->order[0]['dir']);
@@ -84,8 +84,6 @@ class StockTransactionController extends Controller
                 'quantity'    => $trx->quantity,
                 'reference'   => $trx->reference,
                 'description' => $trx->description,
-                'created_by'  => $trx->creator?->name,
-                'approved_by' => $trx->approver?->name,
                 'created_at'  => $trx->created_at,
                 'approved_at' => $trx->approved_at,
                 'trashed'     => $trx->trashed(),

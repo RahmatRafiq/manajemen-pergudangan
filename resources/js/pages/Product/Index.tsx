@@ -14,7 +14,6 @@ const columns = (filter: string) => [
     { data: 'name', title: 'Name' },
     { data: 'category', title: 'Category' },
     { data: 'unit', title: 'Unit' },
-    { data: 'created_by', title: 'Created By' },
     {
         data: null,
         title: 'Actions',
