@@ -13,29 +13,43 @@ class StockTransactionController extends Controller
 {
     protected function getUserWarehouseIds()
     {
-        return auth()->user()->warehouses()->pluck('warehouses.id');
+        $user = auth()->user();
+        
+        // Jika user adalah admin, return semua warehouse IDs
+        if ($user->hasRole('admin')) {
+            return \App\Models\Warehouse::pluck('id');
+        }
+        
+        // Jika bukan admin, return warehouse yang dimiliki user
+        return $user->warehouses()->pluck('warehouses.id');
     }
 
     public function index(Request $request)
     {
         $userWarehouseIds = $this->getUserWarehouseIds();
         $filter           = $request->query('filter', 'all');
-        $transactions     = match ($filter) {
-            'trashed' => StockTransaction::onlyTrashed()
-                ->whereHas('inventory', fn($q) => $q->whereIn('warehouse_id', $userWarehouseIds))
-                ->with(['inventory.product', 'inventory.warehouse', 'creator', 'approver'])->get(),
-            'all' => StockTransaction::withTrashed()
-                ->whereHas('inventory', fn($q) => $q->whereIn('warehouse_id', $userWarehouseIds))
-                ->with(['inventory.product', 'inventory.warehouse', 'creator', 'approver'])->get(),
-            default => StockTransaction::whereHas('inventory', fn($q) => $q->whereIn('warehouse_id', $userWarehouseIds))
-                ->with(['inventory.product', 'inventory.warehouse', 'creator', 'approver'])->get(),
+        
+        // Admin bisa lihat semua transaksi, non-admin hanya yang di warehouse mereka
+        $baseQuery = function ($query) use ($userWarehouseIds) {
+            if (!auth()->user()->hasRole('admin')) {
+                $query->whereHas('inventory', fn($q) => $q->whereIn('warehouse_id', $userWarehouseIds));
+            }
+            return $query->with(['inventory.product', 'inventory.warehouse', 'creator', 'approver']);
+        };
+        
+        $transactions = match ($filter) {
+            'trashed' => $baseQuery(StockTransaction::onlyTrashed())->get(),
+            'all' => $baseQuery(StockTransaction::withTrashed())->get(),
+            default => $baseQuery(StockTransaction::query())->get(),
         };
 
         return Inertia::render('StockTransaction/Index', [
             'transactions' => $transactions,
             'filter'       => $filter,
             'products'     => Product::all(),
-            'warehouses'   => Warehouse::whereIn('id', $userWarehouseIds)->get(),
+            'warehouses'   => auth()->user()->hasRole('admin') 
+                ? Warehouse::all() 
+                : Warehouse::whereIn('id', $userWarehouseIds)->get(),
         ]);
     }
 
@@ -45,15 +59,22 @@ class StockTransactionController extends Controller
         $search           = $request->input('search.value', '');
         $filter           = $request->input('filter', 'all');
 
+        // Base query builder function untuk admin vs non-admin
+        $buildQuery = function ($baseQuery) use ($userWarehouseIds) {
+            $query = $baseQuery->with(['inventory.product', 'inventory.warehouse', 'creator', 'approver']);
+            
+            // Jika bukan admin, batasi berdasarkan warehouse
+            if (!auth()->user()->hasRole('admin')) {
+                $query->whereHas('inventory', fn($q) => $q->whereIn('warehouse_id', $userWarehouseIds));
+            }
+            
+            return $query;
+        };
+
         $query = match ($filter) {
-            'trashed' => StockTransaction::onlyTrashed()
-                ->whereHas('inventory', fn($q) => $q->whereIn('warehouse_id', $userWarehouseIds))
-                ->with(['inventory.product', 'inventory.warehouse', 'creator', 'approver']),
-            'all' => StockTransaction::withTrashed()
-                ->whereHas('inventory', fn($q) => $q->whereIn('warehouse_id', $userWarehouseIds))
-                ->with(['inventory.product', 'inventory.warehouse', 'creator', 'approver']),
-            default => StockTransaction::whereHas('inventory', fn($q) => $q->whereIn('warehouse_id', $userWarehouseIds))
-                ->with(['inventory.product', 'inventory.warehouse', 'creator', 'approver']),
+            'trashed' => $buildQuery(StockTransaction::onlyTrashed()),
+            'all' => $buildQuery(StockTransaction::withTrashed()),
+            default => $buildQuery(StockTransaction::query()),
         };
 
         if ($search) {
@@ -97,9 +118,15 @@ class StockTransactionController extends Controller
     public function create()
     {
         $userWarehouseIds = $this->getUserWarehouseIds();
-        $inventories      = Inventory::with(['product', 'warehouse'])
-            ->whereIn('warehouse_id', $userWarehouseIds)
-            ->get();
+        
+        // Admin bisa lihat semua inventories, non-admin hanya yang di warehouse mereka
+        if (auth()->user()->hasRole('admin')) {
+            $inventories = Inventory::with(['product', 'warehouse'])->get();
+        } else {
+            $inventories = Inventory::with(['product', 'warehouse'])
+                ->whereIn('warehouse_id', $userWarehouseIds)
+                ->get();
+        }
 
         return Inertia::render('StockTransaction/Form', [
             'inventories' => $inventories,
@@ -114,7 +141,13 @@ class StockTransactionController extends Controller
                 'required',
                 function ($attribute, $value, $fail) use ($userWarehouseIds) {
                     $inventory = Inventory::find($value);
-                    if (! $inventory || ! $userWarehouseIds->contains($inventory->warehouse_id)) {
+                    if (! $inventory) {
+                        $fail('Inventory tidak ditemukan.');
+                        return;
+                    }
+                    
+                    // Jika bukan admin, periksa akses warehouse
+                    if (! auth()->user()->hasRole('admin') && ! $userWarehouseIds->contains($inventory->warehouse_id)) {
                         $fail('Anda tidak berhak melakukan transaksi pada inventory ini.');
                     }
                 },
@@ -153,9 +186,15 @@ class StockTransactionController extends Controller
     {
         $userWarehouseIds = $this->getUserWarehouseIds();
         $trx              = StockTransaction::withTrashed()->findOrFail($id);
-        $inventories      = Inventory::with(['product', 'warehouse'])
-            ->whereIn('warehouse_id', $userWarehouseIds)
-            ->get();
+        
+        // Admin bisa lihat semua inventories, non-admin hanya yang di warehouse mereka
+        if (auth()->user()->hasRole('admin')) {
+            $inventories = Inventory::with(['product', 'warehouse'])->get();
+        } else {
+            $inventories = Inventory::with(['product', 'warehouse'])
+                ->whereIn('warehouse_id', $userWarehouseIds)
+                ->get();
+        }
 
         return Inertia::render('StockTransaction/Form', [
             'transaction' => $trx,
@@ -171,7 +210,13 @@ class StockTransactionController extends Controller
                 'required',
                 function ($attribute, $value, $fail) use ($userWarehouseIds) {
                     $inventory = Inventory::find($value);
-                    if (! $inventory || ! $userWarehouseIds->contains($inventory->warehouse_id)) {
+                    if (! $inventory) {
+                        $fail('Inventory tidak ditemukan.');
+                        return;
+                    }
+                    
+                    // Jika bukan admin, periksa akses warehouse
+                    if (! auth()->user()->hasRole('admin') && ! $userWarehouseIds->contains($inventory->warehouse_id)) {
                         $fail('Anda tidak berhak melakukan transaksi pada inventory ini.');
                     }
                 },
@@ -220,9 +265,17 @@ class StockTransactionController extends Controller
     public function trashed()
     {
         $userWarehouseIds = $this->getUserWarehouseIds();
-        $transactions     = StockTransaction::onlyTrashed()
-            ->whereHas('inventory', fn($q) => $q->whereIn('warehouse_id', $userWarehouseIds))
-            ->with(['inventory.product', 'inventory.warehouse', 'creator', 'approver'])->get();
+        
+        $query = StockTransaction::onlyTrashed()
+            ->with(['inventory.product', 'inventory.warehouse', 'creator', 'approver']);
+        
+        // Jika bukan admin, batasi berdasarkan warehouse
+        if (!auth()->user()->hasRole('admin')) {
+            $query->whereHas('inventory', fn($q) => $q->whereIn('warehouse_id', $userWarehouseIds));
+        }
+        
+        $transactions = $query->get();
+        
         return Inertia::render('StockTransaction/Trashed', [
             'transactions' => $transactions,
         ]);

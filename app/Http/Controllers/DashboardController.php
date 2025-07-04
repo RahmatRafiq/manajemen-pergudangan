@@ -52,8 +52,11 @@ class DashboardController extends Controller
         $totalInventoryValue = $inventoryQuery->sum('quantity');
         $totalUsers = User::count();
         
-        // Stock Alerts
-        $lowStockItems = (clone $inventoryQuery)->lowStock()->count();
+        // Stock Alerts - exclude overlap
+        $lowStockItems = (clone $inventoryQuery)
+            ->lowStock()
+            ->whereRaw('NOT (max_stock IS NOT NULL AND quantity >= max_stock)') // Exclude overstock items
+            ->count();
         $overstockItems = (clone $inventoryQuery)->overstock()->count();
         $stockAlerts = $lowStockItems + $overstockItems;
         
@@ -114,25 +117,27 @@ class DashboardController extends Controller
                     'current_stock' => $item->inventory->quantity ?? 0,
                 ];
             });
-        
-        // Low Stock Items Detail
+         // Low Stock Items Detail (exclude items that are also overstock)
         $lowStockDetails = (clone $inventoryQuery)
             ->lowStock()
+            ->whereRaw('NOT (max_stock IS NOT NULL AND quantity >= max_stock)') // Exclude overstock items
             ->with(['product', 'warehouse'])
             ->orderBy('quantity', 'asc')
             ->limit(10)
             ->get()
             ->map(function ($item) {
+                $percentage = $item->min_stock > 0 ? round(($item->quantity / $item->min_stock) * 100, 1) : 0;
+                
                 return [
                     'product_name' => $item->product->name,
                     'product_sku' => $item->product->sku,
                     'warehouse_name' => $item->warehouse->name,
                     'current_stock' => $item->quantity,
                     'min_stock' => $item->min_stock,
-                    'percentage' => $item->min_stock > 0 ? round(($item->quantity / $item->min_stock) * 100, 1) : 0,
+                    'percentage' => $percentage,
                 ];
             });
-        
+
         // Overstock Items Detail
         $overstockDetails = (clone $inventoryQuery)
             ->overstock()
@@ -141,13 +146,15 @@ class DashboardController extends Controller
             ->limit(10)
             ->get()
             ->map(function ($item) {
+                $percentage = $item->max_stock > 0 ? round(($item->quantity / $item->max_stock) * 100, 1) : 0;
+                
                 return [
                     'product_name' => $item->product->name,
                     'product_sku' => $item->product->sku,
                     'warehouse_name' => $item->warehouse->name,
                     'current_stock' => $item->quantity,
                     'max_stock' => $item->max_stock,
-                    'percentage' => $item->max_stock > 0 ? round(($item->quantity / $item->max_stock) * 100, 1) : 0,
+                    'percentage' => $percentage,
                 ];
             });
         
