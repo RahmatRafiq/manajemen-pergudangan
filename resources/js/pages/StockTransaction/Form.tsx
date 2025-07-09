@@ -20,8 +20,6 @@ type Props = {
 const typeOptions: Option[] = [
     { value: 'in', label: 'Stock In' },
     { value: 'out', label: 'Stock Out' },
-    { value: 'adjustment', label: 'Adjustment' },
-    { value: 'transfer', label: 'Transfer' },
 ];
 
 export default function StockTransactionForm({ transaction, inventories }: Props) {
