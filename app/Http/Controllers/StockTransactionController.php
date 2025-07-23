@@ -70,6 +70,9 @@ class StockTransactionController extends Controller
         if ($request->filled('order')) {
             $orderColumn = $columns[$request->order[0]['column']] ?? 'id';
             $query->orderBy($orderColumn, $request->order[0]['dir']);
+        } else {
+            // Default order: terbaru duluan
+            $query->orderByDesc('created_at')->orderByDesc('id');
         }
 
         $data = DataTable::paginate($query, $request);
