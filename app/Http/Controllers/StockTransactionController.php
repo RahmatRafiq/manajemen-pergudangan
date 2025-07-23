@@ -75,6 +75,42 @@ class StockTransactionController extends Controller
         $data = DataTable::paginate($query, $request);
 
         $data['data'] = collect($data['data'])->map(function ($trx) {
+            // Hitung stock sebelum transaksi ini berdasarkan stock real-time
+            $stockBefore = null;
+            $stockAfter = null;
+            if ($trx->inventory_id && $trx->inventory) {
+                $inventory = $trx->inventory;
+                // Ambil semua transaksi setelah transaksi ini (lebih baru)
+                $afterTrx = $inventory->stockTransactions()
+                    ->where(function($q) use ($trx) {
+                        $q->where('created_at', '>', $trx->created_at)
+                          ->orWhere(function($q2) use ($trx) {
+                              $q2->where('created_at', $trx->created_at)
+                                 ->where('id', '>', $trx->id);
+                          });
+                    })
+                    ->orderBy('created_at')
+                    ->orderBy('id')
+                    ->get();
+                $stock = $inventory->quantity;
+                // Kembalikan stock ke sebelum transaksi ini dengan membalik semua transaksi setelahnya
+                foreach ($afterTrx as $t) {
+                    if ($t->type === 'in') {
+                        $stock -= $t->quantity;
+                    } elseif ($t->type === 'out') {
+                        $stock += $t->quantity;
+                    }
+                }
+                $stockAfter = $stock;
+                // Proses transaksi ini mundur
+                if ($trx->type === 'in') {
+                    $stockBefore = $stockAfter - $trx->quantity;
+                } elseif ($trx->type === 'out') {
+                    $stockBefore = $stockAfter + $trx->quantity;
+                } else {
+                    $stockBefore = $stockAfter;
+                }
+            }
             return [
                 'id'          => $trx->id,
                 'type'        => $trx->type,
@@ -87,6 +123,8 @@ class StockTransactionController extends Controller
                 'created_at'  => $trx->created_at,
                 'approved_at' => $trx->approved_at,
                 'trashed'     => $trx->trashed(),
+                'stock_before'=> $stockBefore,
+                'stock_after' => $stockAfter,
                 'actions'     => '',
             ];
         });

@@ -12,6 +12,11 @@ class Inventory extends Model
     use SoftDeletes, LogsActivity;
     protected $table = 'inventories';
 
+    public function stockTransactions()
+    {
+        return $this->hasMany(StockTransaction::class, 'inventory_id');
+    }
+
     protected $fillable = [
         'warehouse_id',
         'product_id',
