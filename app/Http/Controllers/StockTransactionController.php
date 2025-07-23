@@ -19,16 +19,30 @@ class StockTransactionController extends Controller
     public function index(Request $request)
     {
         $userWarehouseIds = $this->getUserWarehouseIds();
-        $filter           = $request->query('filter', 'all');
+        $filter           = $request->query('filter', 'active');
         $transactions     = match ($filter) {
             'trashed' => StockTransaction::onlyTrashed()
                 ->whereHas('inventory', fn($q) => $q->whereIn('warehouse_id', $userWarehouseIds))
-                ->with(['inventory.product', 'inventory.warehouse', 'creator', 'approver'])->get(),
+                ->with(['inventory.product', 'inventory.warehouse', 'creator', 'approver'])
+                ->orderByDesc('created_at')
+                ->orderByDesc('id')
+                ->get(),
             'all' => StockTransaction::withTrashed()
                 ->whereHas('inventory', fn($q) => $q->whereIn('warehouse_id', $userWarehouseIds))
-                ->with(['inventory.product', 'inventory.warehouse', 'creator', 'approver'])->get(),
+                ->with(['inventory.product', 'inventory.warehouse', 'creator', 'approver'])
+                ->orderByDesc('created_at')
+                ->orderByDesc('id')
+                ->get(),
+            'active' => StockTransaction::whereHas('inventory', fn($q) => $q->whereIn('warehouse_id', $userWarehouseIds))
+                ->with(['inventory.product', 'inventory.warehouse', 'creator', 'approver'])
+                ->orderByDesc('created_at')
+                ->orderByDesc('id')
+                ->get(),
             default => StockTransaction::whereHas('inventory', fn($q) => $q->whereIn('warehouse_id', $userWarehouseIds))
-                ->with(['inventory.product', 'inventory.warehouse', 'creator', 'approver'])->get(),
+                ->with(['inventory.product', 'inventory.warehouse', 'creator', 'approver'])
+                ->orderByDesc('created_at')
+                ->orderByDesc('id')
+                ->get(),
         };
 
         return Inertia::render('StockTransaction/Index', [
@@ -43,17 +57,27 @@ class StockTransactionController extends Controller
     {
         $userWarehouseIds = $this->getUserWarehouseIds();
         $search           = $request->input('search.value', '');
-        $filter           = $request->input('filter', 'all');
+        $filter           = $request->input('filter', 'active');
 
         $query = match ($filter) {
             'trashed' => StockTransaction::onlyTrashed()
                 ->whereHas('inventory', fn($q) => $q->whereIn('warehouse_id', $userWarehouseIds))
-                ->with(['inventory.product', 'inventory.warehouse', 'creator', 'approver']),
+                ->with(['inventory.product', 'inventory.warehouse', 'creator', 'approver'])
+                ->orderByDesc('created_at')
+                ->orderByDesc('id'),
             'all' => StockTransaction::withTrashed()
                 ->whereHas('inventory', fn($q) => $q->whereIn('warehouse_id', $userWarehouseIds))
-                ->with(['inventory.product', 'inventory.warehouse', 'creator', 'approver']),
+                ->with(['inventory.product', 'inventory.warehouse', 'creator', 'approver'])
+                ->orderByDesc('created_at')
+                ->orderByDesc('id'),
+            'active' => StockTransaction::whereHas('inventory', fn($q) => $q->whereIn('warehouse_id', $userWarehouseIds))
+                ->with(['inventory.product', 'inventory.warehouse', 'creator', 'approver'])
+                ->orderByDesc('created_at')
+                ->orderByDesc('id'),
             default => StockTransaction::whereHas('inventory', fn($q) => $q->whereIn('warehouse_id', $userWarehouseIds))
-                ->with(['inventory.product', 'inventory.warehouse', 'creator', 'approver']),
+                ->with(['inventory.product', 'inventory.warehouse', 'creator', 'approver'])
+                ->orderByDesc('created_at')
+                ->orderByDesc('id'),
         };
 
         if ($search) {
