@@ -12,6 +12,7 @@ const columns = (filter: string) => [
     { data: 'id', title: 'ID' },
     { data: 'sku', title: 'SKU' },
     { data: 'name', title: 'Name' },
+    { data: 'vendor', title: 'Vendor' },
     { data: 'category', title: 'Category' },
     { data: 'unit', title: 'Unit' },
     {
@@ -23,11 +24,11 @@ const columns = (filter: string) => [
             const product = row as Product;
             let html = '';
             if (filter === 'trashed' || (filter === 'all' && product.trashed)) {
-                html += `<button class="btn-restore ml-2 px-2 py-1 bg-green-600 text-white rounded hover:bg-green-700" data-id="${product.id}">Restore</button>`;
-                html += `<button class="btn-force-delete ml-2 px-2 py-1 bg-red-600 text-white rounded hover:bg-red-700" data-id="${product.id}">Force Delete</button>`;
+                html += `<button class=\"btn-restore ml-2 px-2 py-1 bg-green-600 text-white rounded hover:bg-green-700\" data-id=\"${product.id}\">Restore</button>`;
+                html += `<button class=\"btn-force-delete ml-2 px-2 py-1 bg-red-600 text-white rounded hover:bg-red-700\" data-id=\"${product.id}\">Force Delete</button>`;
             } else {
-                html += `<span class="inertia-link-cell" data-id="${product.id}"></span>`;
-                html += `<button class="btn-delete ml-2 px-2 py-1 bg-red-600 text-white rounded hover:bg-red-700" data-id="${product.id}">Delete</button>`;
+                html += `<span class=\"inertia-link-cell\" data-id=\"${product.id}\"></span>`;
+                html += `<button class=\"btn-delete ml-2 px-2 py-1 bg-red-600 text-white rounded hover:bg-red-700\" data-id=\"${product.id}\">Delete</button>`;
             }
             return html;
         },

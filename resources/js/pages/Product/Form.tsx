@@ -16,6 +16,7 @@ type Props = {
         id: number;
         sku: string;
         name: string;
+        vendor?: string;
         category_id: number | null;
         unit: string;
         description: string;
@@ -31,6 +32,7 @@ export default function ProductForm({ product, categoryOptions, warehouseOptions
     const { data, setData, post, put, processing, errors } = useForm({
         sku: product?.sku || '',
         name: product?.name || '',
+        vendor: product?.vendor || '',
         category_id: product?.category_id || '',
         unit: product?.unit || '',
         description: product?.description || '',
@@ -114,6 +116,17 @@ export default function ProductForm({ product, categoryOptions, warehouseOptions
                                     required
                                 />
                                 <InputError message={errors.name} />
+                            </div>
+                            <div>
+                                <Label htmlFor="vendor">Vendor</Label>
+                                <Input
+                                    id="vendor"
+                                    type="text"
+                                    value={data.vendor}
+                                    onChange={(e) => setData('vendor', e.target.value)}
+                                    placeholder="Enter vendor name"
+                                />
+                                <InputError message={errors.vendor} />
                             </div>
 
                             <div>
