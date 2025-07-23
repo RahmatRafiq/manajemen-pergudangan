@@ -91,6 +91,7 @@ class ProductController extends Controller
                 'id' => $product->id,
                 'sku' => $product->sku,
                 'name' => $product->name,
+                'vendor' => $product->vendor,
                 'category' => $product->category?->name,
                 'unit' => $product->unit,
                 'trashed' => $product->trashed(),
@@ -117,6 +118,7 @@ class ProductController extends Controller
     {
         $validatedData = $request->validate([
             'name' => 'required|string|max:255',
+            'vendor' => 'nullable|string|max:255',
             'category_id' => 'required|exists:categories,id',
             'description' => 'nullable|string',
             'unit' => 'required|string|max:50',
@@ -154,6 +156,7 @@ class ProductController extends Controller
     {
         $validatedData = $request->validate([
             'name' => 'required|string|max:255',
+            'vendor' => 'nullable|string|max:255',
             'category_id' => 'required|exists:categories,id',
             'description' => 'nullable|string',
             'unit' => 'required|string|max:50',
