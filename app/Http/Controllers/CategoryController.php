@@ -37,7 +37,7 @@ class CategoryController extends Controller
             $query->where('name', 'like', "%{$search}%");
         }
 
-        $columns = ['id', 'name', 'type', 'created_at', 'updated_at'];
+        $columns = ['id', 'name', 'created_at', 'updated_at'];
         if ($request->filled('order')) {
             $orderColumn = $columns[$request->order[0]['column']] ?? 'id';
             $query->orderBy($orderColumn, $request->order[0]['dir']);
@@ -49,8 +49,7 @@ class CategoryController extends Controller
             return [
                 'id'         => $category->id,
                 'name'       => $category->name,
-                'type'       => $category->type,
-                'trashed'    => $category->trashed(),
+                'trashed'    => (bool)($category->deleted_at ?? false),
                 'created_at' => $category->created_at->toDateTimeString(),
                 'updated_at' => $category->updated_at->toDateTimeString(),
                 'actions'    => '',
@@ -73,9 +72,8 @@ class CategoryController extends Controller
         $request->validate([
             'name'        => 'required|string|max:255|unique:categories,name',
             'description' => 'nullable|string|max:1000',
-            'type'        => 'required|string',
         ]);
-        Category::create($request->only(['name', 'type', 'description']));
+        Category::create($request->only(['name', 'description']));
 
         return redirect()->route('category.index')->with('success', 'Category created successfully.');
     }
@@ -92,12 +90,11 @@ class CategoryController extends Controller
     public function update(Request $request, Category $category)
     {
         $request->validate([
-            'name'        => 'required|string|max:255|unique:categories,name,' . $category->id,
+            'name'        => 'required|string|max:255|unique:categories,name,' . $category->getKey(),
             'description' => 'nullable|string|max:1000',
-            'type'        => 'required|string',
         ]);
 
-        $category->update($request->only(['name', 'type', 'description']));
+        $category->update($request->only(['name', 'description']));
 
         return redirect()->route('category.index')->with('success', 'Category updated successfully.');
     }

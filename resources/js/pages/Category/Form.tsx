@@ -15,7 +15,6 @@ export default function CategoryForm({ category }: { category?: Category }) {
 
     const { data, setData, post, put, processing, errors } = useForm({
         name: category?.name || '',
-        type: category?.type || 'article',
         description: category?.description || '',
     });
 
@@ -32,12 +31,7 @@ export default function CategoryForm({ category }: { category?: Category }) {
             post(route('category.store'));
         }
     };
-    const typeOptions = [
-        { value: 'finished_goods', label: 'Finished Goods / Barang Jadi' },
-        { value: 'raw_material', label: 'Raw Material / Bahan Baku' },
-        { value: 'consumable', label: 'Consumable / Barang Habis Pakai' },
-    ];
-    const selectedType = typeOptions.find(opt => opt.value === data.type) || null;
+    // type field removed
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -85,29 +79,6 @@ export default function CategoryForm({ category }: { category?: Category }) {
                                 />
                                 <InputError message={errors.description} />
                             </div>
-                            <div>
-                                <Label htmlFor="type">Type</Label>
-                                <CustomSelect
-                                    id="type"
-                                    options={typeOptions}
-                                    value={selectedType}
-                                    placeholder="Select type"
-                                    onChange={opt => {
-                                        if (
-                                            opt &&
-                                            !Array.isArray(opt) &&
-                                            typeof opt === 'object' &&
-                                            'value' in opt
-                                        ) {
-                                            setData('type', opt.value);
-                                        } else {
-                                            setData('type', '');
-                                        }
-                                    }}
-                                />
-                                <InputError message={errors.type} />
-                            </div>
-
                             <div className="flex items-center space-x-4">
                                 <Button disabled={processing}>
                                     {isEdit ? 'Update Category' : 'Create Category'}

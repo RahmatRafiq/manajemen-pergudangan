@@ -12,7 +12,6 @@ import { Category } from '@/types/Category';
 const columns = (filter: string) => [
     { data: 'id', title: 'ID' },
     { data: 'name', title: 'Name' },
-    { data: 'type', title: 'Type' },
     { data: 'created_at', title: 'Created At' },
     { data: 'updated_at', title: 'Updated At' },
     {
