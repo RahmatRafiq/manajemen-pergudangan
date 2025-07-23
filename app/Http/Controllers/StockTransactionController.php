@@ -23,26 +23,12 @@ class StockTransactionController extends Controller
         $transactions     = match ($filter) {
             'trashed' => StockTransaction::onlyTrashed()
                 ->whereHas('inventory', fn($q) => $q->whereIn('warehouse_id', $userWarehouseIds))
-                ->with(['inventory.product', 'inventory.warehouse', 'creator', 'approver'])
-                ->orderByDesc('created_at')
-                ->orderByDesc('id')
-                ->get(),
+                ->with(['inventory.product', 'inventory.warehouse', 'creator', 'approver'])->get(),
             'all' => StockTransaction::withTrashed()
                 ->whereHas('inventory', fn($q) => $q->whereIn('warehouse_id', $userWarehouseIds))
-                ->with(['inventory.product', 'inventory.warehouse', 'creator', 'approver'])
-                ->orderByDesc('created_at')
-                ->orderByDesc('id')
-                ->get(),
-            'active' => StockTransaction::whereHas('inventory', fn($q) => $q->whereIn('warehouse_id', $userWarehouseIds))
-                ->with(['inventory.product', 'inventory.warehouse', 'creator', 'approver'])
-                ->orderByDesc('created_at')
-                ->orderByDesc('id')
-                ->get(),
+                ->with(['inventory.product', 'inventory.warehouse', 'creator', 'approver'])->get(),
             default => StockTransaction::whereHas('inventory', fn($q) => $q->whereIn('warehouse_id', $userWarehouseIds))
-                ->with(['inventory.product', 'inventory.warehouse', 'creator', 'approver'])
-                ->orderByDesc('created_at')
-                ->orderByDesc('id')
-                ->get(),
+                ->with(['inventory.product', 'inventory.warehouse', 'creator', 'approver'])->get(),
         };
 
         return Inertia::render('StockTransaction/Index', [
@@ -62,22 +48,12 @@ class StockTransactionController extends Controller
         $query = match ($filter) {
             'trashed' => StockTransaction::onlyTrashed()
                 ->whereHas('inventory', fn($q) => $q->whereIn('warehouse_id', $userWarehouseIds))
-                ->with(['inventory.product', 'inventory.warehouse', 'creator', 'approver'])
-                ->orderByDesc('created_at')
-                ->orderByDesc('id'),
+                ->with(['inventory.product', 'inventory.warehouse', 'creator', 'approver']),
             'all' => StockTransaction::withTrashed()
                 ->whereHas('inventory', fn($q) => $q->whereIn('warehouse_id', $userWarehouseIds))
-                ->with(['inventory.product', 'inventory.warehouse', 'creator', 'approver'])
-                ->orderByDesc('created_at')
-                ->orderByDesc('id'),
-            'active' => StockTransaction::whereHas('inventory', fn($q) => $q->whereIn('warehouse_id', $userWarehouseIds))
-                ->with(['inventory.product', 'inventory.warehouse', 'creator', 'approver'])
-                ->orderByDesc('created_at')
-                ->orderByDesc('id'),
+                ->with(['inventory.product', 'inventory.warehouse', 'creator', 'approver']),
             default => StockTransaction::whereHas('inventory', fn($q) => $q->whereIn('warehouse_id', $userWarehouseIds))
-                ->with(['inventory.product', 'inventory.warehouse', 'creator', 'approver'])
-                ->orderByDesc('created_at')
-                ->orderByDesc('id'),
+                ->with(['inventory.product', 'inventory.warehouse', 'creator', 'approver']),
         };
 
         if ($search) {
@@ -90,24 +66,52 @@ class StockTransactionController extends Controller
             })->orWhere('reference', 'like', "%{$search}%");
         }
 
-        $columns = ['id', 'type', 'quantity', 'reference', 'description',  'approved_by', 'created_at', 'approved_at'];
+        // Kolom harus sesuai urutan DataTables frontend: [detail, id, type, warehouse, product, sku, quantity, reference, created_at, actions]
+        $columns = [null, 'id', 'type', 'warehouse', 'product', 'sku', 'quantity', 'reference', 'created_at', null];
+
+        // Mapping index kolom ke field database/relasi
+        $columnMap = [
+            1 => 'id',
+            2 => 'type',
+            3 => 'warehouse',
+            4 => 'product',
+            5 => 'sku',
+            6 => 'quantity',
+            7 => 'reference',
+            8 => 'created_at',
+        ];
         if ($request->filled('order')) {
-            $orderColumn = $columns[$request->order[0]['column']] ?? 'id';
-            $query->orderBy($orderColumn, $request->order[0]['dir']);
-        } else {
-            // Default order: terbaru duluan
-            $query->orderByDesc('created_at')->orderByDesc('id');
+            $orderIdx = $request->order[0]['column'];
+            $orderDir = $request->order[0]['dir'];
+            $orderColumn = $columnMap[$orderIdx] ?? 'id';
+            // Sorting relasi
+            if ($orderColumn === 'warehouse') {
+                $query->join('inventories as inv', 'stock_transactions.inventory_id', '=', 'inv.id')
+                      ->join('warehouses as w', 'inv.warehouse_id', '=', 'w.id')
+                      ->orderBy('w.name', $orderDir)
+                      ->select('stock_transactions.*');
+            } elseif ($orderColumn === 'product') {
+                $query->join('inventories as inv', 'stock_transactions.inventory_id', '=', 'inv.id')
+                      ->join('products as p', 'inv.product_id', '=', 'p.id')
+                      ->orderBy('p.name', $orderDir)
+                      ->select('stock_transactions.*');
+            } elseif ($orderColumn === 'sku') {
+                $query->join('inventories as inv', 'stock_transactions.inventory_id', '=', 'inv.id')
+                      ->join('products as p', 'inv.product_id', '=', 'p.id')
+                      ->orderBy('p.sku', $orderDir)
+                      ->select('stock_transactions.*');
+            } else {
+                $query->orderBy($orderColumn, $orderDir);
+            }
         }
 
         $data = DataTable::paginate($query, $request);
 
         $data['data'] = collect($data['data'])->map(function ($trx) {
-            // Hitung stock sebelum transaksi ini berdasarkan stock real-time
             $stockBefore = null;
             $stockAfter = null;
             if ($trx->inventory_id && $trx->inventory) {
                 $inventory = $trx->inventory;
-                // Ambil semua transaksi setelah transaksi ini (lebih baru)
                 $afterTrx = $inventory->stockTransactions()
                     ->where(function($q) use ($trx) {
                         $q->where('created_at', '>', $trx->created_at)
@@ -120,7 +124,6 @@ class StockTransactionController extends Controller
                     ->orderBy('id')
                     ->get();
                 $stock = $inventory->quantity;
-                // Kembalikan stock ke sebelum transaksi ini dengan membalik semua transaksi setelahnya
                 foreach ($afterTrx as $t) {
                     if ($t->type === 'in') {
                         $stock -= $t->quantity;
@@ -129,7 +132,6 @@ class StockTransactionController extends Controller
                     }
                 }
                 $stockAfter = $stock;
-                // Proses transaksi ini mundur
                 if ($trx->type === 'in') {
                     $stockBefore = $stockAfter - $trx->quantity;
                 } elseif ($trx->type === 'out') {
@@ -251,14 +253,12 @@ class StockTransactionController extends Controller
                         $currentTrx = StockTransaction::find($id);
                         $inventory = Inventory::find($request->inventory_id);
                         if ($inventory && $currentTrx) {
-                            // Calculate available stock considering the current transaction being updated
                             $availableStock = $inventory->quantity;
                             if ($currentTrx->type === 'out') {
-                                $availableStock += $currentTrx->quantity; // Add back the previous out quantity
+                                $availableStock += $currentTrx->quantity;
                             } elseif ($currentTrx->type === 'in') {
-                                $availableStock -= $currentTrx->quantity; // Remove the previous in quantity
+                                $availableStock -= $currentTrx->quantity;
                             }
-                            
                             if ($value > $availableStock) {
                                 $fail("Quantity tidak boleh melebihi stock yang tersedia ({$availableStock}).");
                             }

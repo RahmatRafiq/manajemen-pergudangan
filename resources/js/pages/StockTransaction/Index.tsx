@@ -7,7 +7,30 @@ import DataTableWrapper, { DataTableWrapperRef } from '@/components/datatables';
 import { StockTransaction } from '@/types/StockTransaction';
 import clsx from 'clsx';
 
+// Fungsi untuk render detail transaksi (harus di luar komponen agar tidak error TSX)
+function formatTransactionDetails(data: any): string {
+    return `
+        <div class="p-4 bg-gray-50 border border-gray-200 rounded shadow-sm">
+            <strong class="block text-gray-800 mb-2">Transaction Details:</strong>
+            <ul class="ml-4">
+                <li><b>Stock Sebelum Transaksi:</b> ${data.stock_before ?? '-'}</li>
+                <li><b>Jenis Transaksi:</b> ${data.type === 'in' ? 'Stock In' : data.type === 'out' ? 'Stock Out' : data.type}</li>
+                <li><b>Jumlah Transaksi:</b> ${data.quantity}</li>
+                <li><b>Stock Aktual Setelah Transaksi:</b> ${data.stock_after ?? '-'}</li>
+            </ul>
+        </div>
+    `;
+}
+
 const columns = (filter: string) => [
+    {
+        data: null,
+        title: '',
+        orderable: false,
+        searchable: false,
+        className: 'details-control',
+        render: () => '<span style="cursor: pointer;">+</span>',
+    },
     { data: 'id', title: 'ID' },
     { data: 'type', title: 'Type' },
     { data: 'warehouse', title: 'Warehouse' },
@@ -124,6 +147,26 @@ export default function StockTransactionIndex({ filter: initialFilter, success }
                                         if (id) handleForceDelete(Number(id));
                                     });
                                 });
+
+                                const table = dtRef.current?.dt();
+                                if (table) {
+                                    document.querySelectorAll('.details-control').forEach((cell) => {
+                                        cell.addEventListener('click', function () {
+                                            const tr = cell.closest('tr');
+                                            if (!tr) return;
+                                            const row = table.row(tr);
+                                            if (row.child.isShown()) {
+                                                row.child.hide();
+                                                tr.classList.remove('shown');
+                                                cell.innerHTML = '<span style="cursor: pointer;">+</span>';
+                                            } else {
+                                                row.child(formatTransactionDetails(row.data())).show();
+                                                tr.classList.add('shown');
+                                                cell.innerHTML = '<span style="cursor: pointer;">-</span>';
+                                            }
+                                        });
+                                    });
+                                }
                             }
                         }}
                     />
