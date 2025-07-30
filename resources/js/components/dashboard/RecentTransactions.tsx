@@ -76,52 +76,57 @@ export default function RecentTransactions({ transactions }: RecentTransactionsP
                             No recent transactions
                         </div>
                     ) : (
-                        transactions.slice(0, 5).map((transaction) => (
-                            <div
-                                key={transaction.id}
-                                className="flex flex-col gap-3 p-3 rounded-lg border"
-                            >
-                                {/* Header Row */}
-                                <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-2">
-                                        <Badge className={typeColors[transaction.type as keyof typeof typeColors]}>
-                                            {typeLabels[transaction.type as keyof typeof typeLabels]}
-                                        </Badge>
-                                        <span className="text-sm font-medium">
-                                            {transaction.reference}
+                        transactions.slice(0, 5).map((transaction) => {
+                            const product = transaction.inventory?.product ?? null;
+                            const warehouse = transaction.inventory?.warehouse ?? null;
+                            const creator = transaction.creator ?? null;
+                            return (
+                                <div
+                                    key={transaction.id}
+                                    className="flex flex-col gap-3 p-3 rounded-lg border"
+                                >
+                                    {/* Header Row */}
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-2">
+                                            <Badge className={typeColors[transaction.type as keyof typeof typeColors]}>
+                                                {typeLabels[transaction.type as keyof typeof typeLabels]}
+                                            </Badge>
+                                            <span className="text-sm font-medium">
+                                                {transaction.reference}
+                                            </span>
+                                        </div>
+                                        <div className={`text-lg font-semibold ${
+                                            transaction.type === 'in' || transaction.type === 'adjustment'
+                                                ? 'text-green-600' 
+                                                : 'text-red-600'
+                                        }`}>
+                                            {transaction.type === 'out' ? '-' : '+'}
+                                            {transaction.quantity}
+                                        </div>
+                                    </div>
+                                    
+                                    {/* Product Info */}
+                                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                        <Package className="h-4 w-4" />
+                                        <span>
+                                            {product ? `${product.name} (${product.sku})` : 'Unknown Product'}
                                         </span>
                                     </div>
-                                    <div className={`text-lg font-semibold ${
-                                        transaction.type === 'in' || transaction.type === 'adjustment'
-                                            ? 'text-green-600' 
-                                            : 'text-red-600'
-                                    }`}>
-                                        {transaction.type === 'out' ? '-' : '+'}
-                                        {transaction.quantity}
-                                    </div>
-                                </div>
-                                
-                                {/* Product Info */}
-                                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                    <Package className="h-4 w-4" />
-                                    <span>
-                                        {transaction.inventory.product.name} ({transaction.inventory.product.sku})
-                                    </span>
-                                </div>
-                                
-                                {/* Footer Row */}
-                                <div className="flex items-center justify-between text-xs text-muted-foreground">
-                                    <span>@ {transaction.inventory.warehouse.name}</span>
-                                    <div className="flex items-center gap-3">
-                                        <div className="flex items-center gap-1">
-                                            <User className="h-3 w-3" />
-                                            <span>{transaction.creator.name}</span>
+                                    
+                                    {/* Footer Row */}
+                                    <div className="flex items-center justify-between text-xs text-muted-foreground">
+                                        <span>@ {warehouse ? warehouse.name : 'Unknown Warehouse'}</span>
+                                        <div className="flex items-center gap-3">
+                                            <div className="flex items-center gap-1">
+                                                <User className="h-3 w-3" />
+                                                <span>{creator ? creator.name : 'Unknown User'}</span>
+                                            </div>
+                                            <span>{formatDate(transaction.created_at)}</span>
                                         </div>
-                                        <span>{formatDate(transaction.created_at)}</span>
                                     </div>
                                 </div>
-                            </div>
-                        ))
+                            );
+                        })
                     )}
                 </div>
             </CardContent>
